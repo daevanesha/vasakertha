@@ -27,6 +27,7 @@ import EditIcon from '@mui/icons-material/Edit';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
+import AssignmentIndIcon from '@mui/icons-material/AssignmentInd';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm, Controller } from 'react-hook-form';
 import { api } from '../utils/api';
@@ -245,6 +246,15 @@ export const BotManager = () => {
                   <TableRow key={bot.id}>
                     {/* Manage column: Edit, Delete */}
                     <TableCell>
+                      <IconButton
+                        size="small"
+                        color="primary"
+                        onClick={() => window.location.href = `/bot-integrations/${encodeURIComponent(bot.name)}`}
+                        title="Integrate Models"
+                        style={{ marginRight: 4 }}
+                      >
+                        <AssignmentIndIcon />
+                      </IconButton>
                       <IconButton
                         size="small"
                         color="secondary"

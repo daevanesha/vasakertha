@@ -377,19 +377,46 @@ export const Models = () => {
                 name="provider_id"
                 control={control}
                 rules={{ required: 'Provider is required' }}
-                render={({ field, fieldState: { error } }) => (
-                  <FormControl fullWidth error={!!error}>
-                    <InputLabel>Provider</InputLabel>
-                    <Select {...field} label="Provider">
-                      {providers.map((provider) => (
-                        <MenuItem key={provider.id} value={provider.id}>
-                          {provider.name}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                    {error && <FormHelperText>{error.message}</FormHelperText>}
-                  </FormControl>
-                )}
+                render={({ field, fieldState: { error } }) => {
+                  // Determine if selected provider is valid
+                  const selected = providers.find(p => p.id === field.value)
+                  const providerValid = selected && selected.is_active && !!selected.api_key
+                  return (
+                    <FormControl fullWidth error={!!error}>
+                      <InputLabel>Provider</InputLabel>
+                      <Select
+                        {...field}
+                        label="Provider"
+                        // Prevent selecting invalid providers
+                        onChange={e => {
+                          const value = e.target.value
+                          const provider = providers.find(p => p.id === value)
+                          if (provider && provider.is_active && provider.api_key) {
+                            field.onChange(value)
+                          }
+                        }}
+                      >
+                        {providers.map((provider) => {
+                          const disabled = !provider.is_active || !provider.api_key
+                          let label = provider.name
+                          if (!provider.is_active) label += ' (inactive)'
+                          else if (!provider.api_key) label += ' (missing API key)'
+                          return (
+                            <MenuItem key={provider.id} value={provider.id} disabled={disabled}>
+                              {label}
+                            </MenuItem>
+                          )
+                        })}
+                      </Select>
+                      {error && <FormHelperText>{error.message}</FormHelperText>}
+                      {!providerValid && (
+                        <FormHelperText error>
+                          Selected provider is not active or missing API key. Please configure the provider in the AI Providers page.
+                        </FormHelperText>
+                      )}
+                    </FormControl>
+                  )
+                }}
               />
 
               <Controller
@@ -481,6 +508,21 @@ export const Models = () => {
             </Stack>
           </DialogContent>
           <DialogActions>
+            <Box sx={{ flex: 1 }}>
+              {/* Show warning if provider is invalid */}
+              {(() => {
+                const selected = providers.find(p => p.id === selectedProvider)
+                const providerValid = selected && selected.is_active && !!selected.api_key
+                if (!providerValid) {
+                  return (
+                    <FormHelperText error sx={{ mb: 1 }}>
+                      Cannot save: Selected provider is not active or missing API key. Please configure the provider in the AI Providers page.
+                    </FormHelperText>
+                  )
+                }
+                return null
+              })()}
+            </Box>
             <Button 
               onClick={() => {
                 setOpen(false)
@@ -493,7 +535,10 @@ export const Models = () => {
             <Button 
               type="submit" 
               variant="contained" 
-              disabled={saving}
+              disabled={saving || (() => {
+                const selected = providers.find(p => p.id === selectedProvider)
+                return !(selected && selected.is_active && !!selected.api_key)
+              })()}
             >
               {saving 
                 ? (editingModel ? 'Saving...' : 'Adding...') 

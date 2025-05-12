@@ -22,7 +22,7 @@ interface Integration {
 }
 
 export const BotModelIntegration = () => {
-  const { botId } = useParams<{ botId: string }>();
+  const { botName } = useParams<{ botName: string }>();
   const navigate = useNavigate();
   const [integrations, setIntegrations] = useState<Integration[]>([]);
   const [models, setModels] = useState<Model[]>([]);
@@ -30,21 +30,27 @@ export const BotModelIntegration = () => {
   const [command, setCommand] = useState('');
   const [modelId, setModelId] = useState<number | ''>('');
   const [saving, setSaving] = useState(false);
+  const [botId, setBotId] = useState<number | null>(null);
 
   useEffect(() => {
-    api.get(`/bot-model-integrations/bot/${botId}`).then(res => setIntegrations(res.data));
-    api.get('/models/').then(res => setModels(res.data));
-  }, [botId]);
+    api.get('/discord-bots/').then(botsRes => {
+      const bot = botsRes.data.find((b: any) => b.name === botName);
+      if (!bot) return;
+      api.get(`/bot-model-integrations/bot/${bot.id}`).then(res => setIntegrations(res.data));
+      api.get('/models/').then(res => setModels(res.data));
+      setBotId(bot.id);
+    });
+  }, [botName]);
 
   const handleAdd = async () => {
-    if (!modelId || typeof modelId !== 'number' || isNaN(modelId)) {
-      alert('Please select a valid model.');
+    if (!modelId || typeof modelId !== 'number' || isNaN(modelId) || !botId) {
+      alert('Please select a valid model and bot.');
       return;
     }
     setSaving(true);
     try {
       await api.post('/bot-model-integrations/', {
-        bot_id: Number(botId),
+        bot_id: botId,
         model_id: modelId,
         command
       });

@@ -5,6 +5,7 @@ import { Dashboard } from './pages/Dashboard'
 import { AIProviders } from './pages/AIProviders'
 import { Models } from './pages/Models'
 import { BotManager } from './pages/BotManager'
+import { BotModelIntegration } from './pages/BotModelIntegration'
 import theme from './theme'
 
 function App() {
@@ -18,6 +19,7 @@ function App() {
             <Route path="providers" element={<AIProviders />} />
             <Route path="models" element={<Models />} />
             <Route path="bots" element={<BotManager />} />
+            <Route path="bot-integrations/:botName" element={<BotModelIntegration />} />
           </Route>
         </Routes>
       </Router>
