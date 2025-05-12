@@ -54,7 +54,6 @@ class DaeBotManager:
             embed = discord.Embed(title="D.AI", color=0x23272A)
             embed.add_field(name="Bot ID:", value=f"`{bot.user.id}`", inline=False)
             embed.add_field(name="Version", value=version, inline=True)
-            embed.add_field(name="Creator", value="Daevaesma", inline=True)
             embed.set_thumbnail(url=bot.user.avatar.url if bot.user.avatar else discord.Embed.Empty)
 
             # --- Enhancement: List integrated models/commands ---
@@ -73,7 +72,24 @@ class DaeBotManager:
                             provider = session.query(db_models.AIProvider).filter(db_models.AIProvider.id == model.provider_id).first() if model else None
                             model_name = model.name if model else str(integration.model_id)
                             provider_name = provider.name if provider else 'Unknown'
-                            lines.append(f"`{integration.command}` → {model_name} ({provider_name})")
+                            # Get temperature from config if available
+                            temp = None
+                            try:
+                                config_json = json.loads(getattr(model, 'configuration', '{}') or '{}')
+                                temp = config_json.get('temperature')
+                            except Exception:
+                                temp = None
+                            # Try integration config as fallback
+                            if temp is None and hasattr(integration, 'config') and integration.config:
+                                try:
+                                    if isinstance(integration.config, dict):
+                                        temp = integration.config.get('temperature')
+                                    else:
+                                        temp = json.loads(integration.config).get('temperature')
+                                except Exception:
+                                    temp = None
+                            temp_str = f" | T={temp}" if temp is not None else ""
+                            lines.append(f"`{integration.command}` → {model_name} ({provider_name}{temp_str})")
                         embed.add_field(name="Integrated Commands", value="\n".join(lines), inline=False)
                     else:
                         embed.add_field(name="Integrated Commands", value="No model integrations configured.", inline=False)
@@ -84,6 +100,9 @@ class DaeBotManager:
             finally:
                 session.close()
             # --- End enhancement ---
+
+            # Add Creator at the bottom
+            embed.add_field(name="Creator", value="Daevaesma", inline=False)
 
             await ctx.send(embed=embed)
 
@@ -112,8 +131,10 @@ class DaeBotManager:
                             await ctx.send(f"Usage: {_command} <your prompt>")
                             return
                         try:
-                            model_id_for_api = getattr(_model, 'model_id', None) or getattr(_model, 'name', None)
+                            # --- Buffer message while AI is thinking ---
+                            buffer_msg = await ctx.send(f"Preparing answer for {ctx.author.mention} ...")
                             # --- Persona/Behavior injection ---
+                            model_id_for_api = getattr(_model, 'model_id', None) or getattr(_model, 'name', None)
                             persona = None
                             try:
                                 config_json = json.loads(getattr(_model, 'configuration', '{}') or '{}')
@@ -238,7 +259,7 @@ class DaeBotManager:
                                     await ctx.send(f"Mistral API error: {resp.status_code} {resp.text}")
                             else:
                                 await ctx.send(f"Unsupported provider: {getattr(_provider, 'name', 'Unknown')}")
-                        
+                            await buffer_msg.delete()
                         except Exception as e:
                             logger.error(f"Error in custom model command: {traceback.format_exc()}")
                             error_chunks = split_message_chunks(f"An error occurred: {str(e)}\n\nDetails:\n{traceback.format_exc()}")
