@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import React, { useState } from 'react';
 import {
   Button,
   Dialog,
@@ -19,144 +19,182 @@ import {
   Chip,
   Snackbar,
   Alert,
-  CircularProgress
-} from '@mui/material'
-import { Add as AddIcon, Delete as DeleteIcon, Refresh as RefreshIcon, Stop as StopIcon } from '@mui/icons-material'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { useForm, Controller } from 'react-hook-form'
-import { api } from '../utils/api'
+  CircularProgress,
+  InputAdornment
+} from '@mui/material';
+import { Add as AddIcon, Delete as DeleteIcon, Refresh as RefreshIcon, Stop as StopIcon } from '@mui/icons-material';
+import EditIcon from '@mui/icons-material/Edit';
+import PlayArrowIcon from '@mui/icons-material/PlayArrow';
+import Visibility from '@mui/icons-material/Visibility';
+import VisibilityOff from '@mui/icons-material/VisibilityOff';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useForm, Controller } from 'react-hook-form';
+import { api } from '../utils/api';
 
 type DiscordBot = {
-  id: number
-  name: string
-  token: string
-  is_active: boolean
-  created_at: string
-  updated_at: string
-}
+  id: number;
+  name: string;
+  token: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+};
 
 type BotForm = {
-  name: string
-  token: string
-}
+  name: string;
+  token: string;
+};
 
 export const BotManager = () => {
-  const [open, setOpen] = useState(false)
-  const [saving, setSaving] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [open, setOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [editOpen, setEditOpen] = useState(false);
+  const [editBot, setEditBot] = useState<DiscordBot | null>(null);
+  const [showEditToken, setShowEditToken] = useState(false);
 
-  const { control, handleSubmit, reset } = useForm<BotForm>()
-  const queryClient = useQueryClient()
+  const { control, handleSubmit, reset } = useForm<BotForm>();
+  const queryClient = useQueryClient();
 
   // Fetch bots with error handling
   const { data: bots = [], isLoading, isError } = useQuery<DiscordBot[]>({
     queryKey: ['discord-bots'],
     queryFn: async () => {
       try {
-        const response = await api.get('/discord-bots/')
-        return response.data
+        const response = await api.get('/discord-bots/');
+        return response.data;
       } catch (err: any) {
-        console.error('Failed to fetch bots:', err)
-        setError(err.message || 'Failed to load bots')
-        return []
+        console.error('Failed to fetch bots:', err);
+        setError(err.message || 'Failed to load bots');
+        return [];
       }
     },
     retry: 3, // Retry failed requests 3 times
-    retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000),
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
     refetchOnWindowFocus: false,
     staleTime: 30000 // Consider data fresh for 30 seconds
-  })
+  });
 
   // Create bot with improved error handling
   const createBot = useMutation({
     mutationFn: (data: BotForm) => api.post('/discord-bots/', data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['discord-bots'] })
-      setOpen(false)
-      reset()
-      setError(null)
+      queryClient.invalidateQueries({ queryKey: ['discord-bots'] });
+      setOpen(false);
+      reset();
+      setError(null);
     },
     onError: (error: any) => {
-      console.error('Create bot error:', error.response?.data || error)
-      const message = error.response?.data?.detail || error.message || 'Failed to create bot'
-      setError(message)
-      setSaving(false)
+      console.error('Create bot error:', error.response?.data || error);
+      const message = error.response?.data?.detail || error.message || 'Failed to create bot';
+      setError(message);
+      setSaving(false);
     }
-  })
+  });
 
   // Delete bot with improved error handling
   const deleteBot = useMutation({
     mutationFn: (id: number) => api.delete(`/discord-bots/${id}`),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['discord-bots'] })
-      setError(null)
+      queryClient.invalidateQueries({ queryKey: ['discord-bots'] });
+      setError(null);
     },
     onError: (error: any) => {
-      console.error('Delete bot error:', error.response?.data || error)
-      const message = error.response?.data?.detail || error.message || 'Failed to delete bot'
-      setError(message)
+      console.error('Delete bot error:', error.response?.data || error);
+      const message = error.response?.data?.detail || error.message || 'Failed to delete bot';
+      setError(message);
     }
-  })
+  });
 
   // Restart bot with improved error handling
   const restartBot = useMutation({
     mutationFn: (id: number) => api.post(`/discord-bots/${id}/restart`),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['discord-bots'] })
-      setError(null)
+      queryClient.invalidateQueries({ queryKey: ['discord-bots'] });
+      setError(null);
     },
     onError: (error: any) => {
-      console.error('Restart bot error:', error.response?.data || error)
-      const message = error.response?.data?.detail || error.message || 'Failed to restart bot'
-      setError(message)
+      console.error('Restart bot error:', error.response?.data || error);
+      const message = error.response?.data?.detail || error.message || 'Failed to restart bot';
+      setError(message);
     }
-  })
+  });
 
   // Add stopBot mutation
   const stopBot = useMutation({
     mutationFn: (id: number) => api.post(`/discord-bots/${id}/stop`),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['discord-bots'] })
-      setError(null)
+      queryClient.invalidateQueries({ queryKey: ['discord-bots'] });
+      setError(null);
     },
     onError: (error: any) => {
-      console.error('Stop bot error:', error.response?.data || error)
-      const message = error.response?.data?.detail || error.message || 'Failed to stop bot'
-      setError(message)
+      console.error('Stop bot error:', error.response?.data || error);
+      const message = error.response?.data?.detail || error.message || 'Failed to stop bot';
+      setError(message);
     }
-  })
+  });
+
+  // Edit bot mutation
+  const updateBot = useMutation({
+    mutationFn: (data: { id: number; name: string; token: string }) =>
+      api.put(`/discord-bots/${data.id}`, { name: data.name, token: data.token }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['discord-bots'] });
+      setEditOpen(false);
+      setEditBot(null);
+      setError(null);
+    },
+    onError: (error: any) => {
+      const message = error.response?.data?.detail || error.message || 'Failed to update bot';
+      setError(message);
+    }
+  });
 
   const onSubmit = async (data: BotForm) => {
-    setSaving(true)
-    setError(null)
+    setSaving(true);
+    setError(null);
     try {
-      await createBot.mutateAsync(data)
+      await createBot.mutateAsync(data);
     } catch (error: any) {
       // Error is handled by mutation onError
-      return
+      return;
     }
-    setSaving(false)
-  }
+    setSaving(false);
+  };
 
   const handleDelete = async (id: number) => {
     if (window.confirm('Are you sure you want to delete this bot?')) {
-      await deleteBot.mutate(id)
+      await deleteBot.mutate(id);
     }
-  }
+  };
 
   const handleRestart = async (id: number) => {
-    await restartBot.mutate(id)
-  }
+    await restartBot.mutate(id);
+  };
 
   const handleStop = async (id: number) => {
-    await stopBot.mutate(id)
-  }
+    await stopBot.mutate(id);
+  };
+
+  const handleEdit = (bot: DiscordBot) => {
+    setEditBot(bot);
+    setEditOpen(true);
+  };
+
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editBot) return;
+    const form = e.target as HTMLFormElement;
+    const name = (form.elements.namedItem('editName') as HTMLInputElement).value;
+    const token = (form.elements.namedItem('editToken') as HTMLInputElement).value;
+    await updateBot.mutateAsync({ id: editBot.id, name, token });
+  };
 
   return (
     <Stack spacing={3}>
-      <Snackbar 
-        open={!!error || isError} 
-        autoHideDuration={6000} 
+      <Snackbar
+        open={!!error || isError}
+        autoHideDuration={6000}
         onClose={() => setError(null)}
         anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
       >
@@ -165,20 +203,11 @@ export const BotManager = () => {
         </Alert>
       </Snackbar>
 
-      <Stack
-        direction="row"
-        justifyContent="space-between"
-        alignItems="center"
-      >
+      <Stack direction="row" justifyContent="space-between" alignItems="center">
         <Typography variant="h4" gutterBottom>
           Discord Bot Manager
         </Typography>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={() => setOpen(true)}
-          disabled={saving}
-        >
+        <Button variant="contained" startIcon={<AddIcon />} onClick={() => setOpen(true)} disabled={saving}>
           Add Bot
         </Button>
       </Stack>
@@ -204,16 +233,38 @@ export const BotManager = () => {
             <Table>
               <TableHead>
                 <TableRow>
-                  <TableCell>Name</TableCell>
+                  <TableCell>Manage</TableCell>
                   <TableCell>Status</TableCell>
+                  <TableCell>Name</TableCell>
                   <TableCell>Created</TableCell>
-                  <TableCell>Actions</TableCell>
+                  <TableCell align="right">Action</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {bots.map((bot) => (
                   <TableRow key={bot.id}>
-                    <TableCell>{bot.name}</TableCell>
+                    {/* Manage column: Edit, Delete */}
+                    <TableCell>
+                      <IconButton
+                        size="small"
+                        color="secondary"
+                        onClick={() => handleEdit(bot)}
+                        title="Edit Bot"
+                        disabled={saving}
+                      >
+                        <EditIcon fontSize="small" />
+                      </IconButton>
+                      <IconButton
+                        size="small"
+                        color="error"
+                        onClick={() => handleDelete(bot.id)}
+                        title="Delete Bot"
+                        disabled={saving}
+                      >
+                        <DeleteIcon fontSize="small" />
+                      </IconButton>
+                    </TableCell>
+                    {/* Status column */}
                     <TableCell>
                       <Chip
                         label={bot.is_active ? 'Active' : 'Inactive'}
@@ -221,38 +272,41 @@ export const BotManager = () => {
                         size="small"
                       />
                     </TableCell>
-                    <TableCell>
-                      {new Date(bot.created_at).toLocaleDateString()}
-                    </TableCell>
-                    <TableCell>
-                      {/* Start/Restart button */}
+                    {/* Name column */}
+                    <TableCell>{bot.name}</TableCell>
+                    {/* Created column */}
+                    <TableCell>{new Date(bot.created_at).toLocaleDateString()}</TableCell>
+                    {/* Action column: Start, Restart, Stop */}
+                    <TableCell align="right">
+                      {/* Start: only if inactive, Play icon */}
                       <IconButton
                         size="small"
+                        color="primary"
                         onClick={() => handleRestart(bot.id)}
-                        sx={{ mr: 1 }}
-                        title={bot.is_active ? "Restart Bot" : "Start Bot"}
+                        title="Start Bot"
+                        disabled={bot.is_active || saving}
+                      >
+                        <PlayArrowIcon fontSize="small" />
+                      </IconButton>
+                      {/* Restart: only if active */}
+                      <IconButton
+                        size="small"
+                        color="info"
+                        onClick={() => handleRestart(bot.id)}
+                        title="Restart Bot"
+                        disabled={!bot.is_active || saving}
                       >
                         <RefreshIcon fontSize="small" />
                       </IconButton>
-                      {/* Stop button, only for active bots */}
-                      {bot.is_active && (
-                        <IconButton
-                          size="small"
-                          color="warning"
-                          onClick={() => handleStop(bot.id)}
-                          sx={{ mr: 1 }}
-                          title="Stop Bot"
-                        >
-                          <StopIcon fontSize="small" />
-                        </IconButton>
-                      )}
+                      {/* Stop: only if active */}
                       <IconButton
                         size="small"
-                        color="error"
-                        onClick={() => handleDelete(bot.id)}
-                        title="Delete Bot"
+                        color="warning"
+                        onClick={() => handleStop(bot.id)}
+                        title="Stop Bot"
+                        disabled={!bot.is_active || saving}
                       >
-                        <DeleteIcon fontSize="small" />
+                        <StopIcon fontSize="small" />
                       </IconButton>
                     </TableCell>
                   </TableRow>
@@ -267,8 +321,8 @@ export const BotManager = () => {
         open={open}
         onClose={() => {
           if (!saving) {
-            setOpen(false)
-            reset()
+            setOpen(false);
+            reset();
           }
         }}
         maxWidth="sm"
@@ -283,13 +337,7 @@ export const BotManager = () => {
                 control={control}
                 rules={{ required: 'Name is required' }}
                 render={({ field, fieldState: { error } }) => (
-                  <TextField
-                    {...field}
-                    label="Bot Name"
-                    fullWidth
-                    error={!!error}
-                    helperText={error?.message}
-                  />
+                  <TextField {...field} label="Bot Name" fullWidth error={!!error} helperText={error?.message} />
                 )}
               />
 
@@ -313,8 +361,8 @@ export const BotManager = () => {
             <Button
               onClick={() => {
                 if (!saving) {
-                  setOpen(false)
-                  reset()
+                  setOpen(false);
+                  reset();
                 }
               }}
               disabled={saving}
@@ -332,6 +380,48 @@ export const BotManager = () => {
           </DialogActions>
         </form>
       </Dialog>
+
+      {/* Edit Dialog */}
+      <Dialog open={editOpen} onClose={() => setEditOpen(false)} maxWidth="sm" fullWidth>
+        <form onSubmit={handleEditSubmit}>
+          <DialogTitle>Edit Bot</DialogTitle>
+          <DialogContent>
+            <Stack spacing={2} sx={{ mt: 1 }}>
+              <TextField name="editName" label="Bot Name" fullWidth defaultValue={editBot?.name} required />
+              <TextField
+                name="editToken"
+                label="Bot Token"
+                fullWidth
+                defaultValue={editBot?.token}
+                required
+                type={showEditToken ? 'text' : 'password'}
+                InputProps={{
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton
+                        aria-label={showEditToken ? 'Hide token' : 'Show token'}
+                        onClick={() => setShowEditToken((show) => !show)}
+                        edge="end"
+                        tabIndex={-1}
+                      >
+                        {showEditToken ? <VisibilityOff /> : <Visibility />}
+                      </IconButton>
+                    </InputAdornment>
+                  )
+                }}
+              />
+            </Stack>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setEditOpen(false)} disabled={updateBot.isLoading}>
+              Cancel
+            </Button>
+            <Button type="submit" variant="contained" disabled={updateBot.isLoading}>
+              Save
+            </Button>
+          </DialogActions>
+        </form>
+      </Dialog>
     </Stack>
-  )
-}
+  );
+};

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Body
 from sqlalchemy.orm import Session
 from config.database import get_db
 from discord_bots.bot_models import DiscordBot
@@ -46,6 +46,19 @@ def get_bot(bot_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Bot not found")
     db_bot.is_active = bot_runner.get_bot_status(bot_id)
     db.commit()
+    return db_bot
+
+@router.put("/{bot_id}", response_model=DiscordBotSchema)
+async def update_bot(bot_id: int, data: dict = Body(...), db: Session = Depends(get_db)):
+    db_bot = db.query(DiscordBot).filter(DiscordBot.id == bot_id).first()
+    if not db_bot:
+        raise HTTPException(status_code=404, detail="Bot not found")
+    if 'name' in data:
+        db_bot.name = data['name']
+    if 'token' in data:
+        db_bot.token = data['token']
+    db.commit()
+    db.refresh(db_bot)
     return db_bot
 
 @router.delete("/{bot_id}")

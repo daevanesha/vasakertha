@@ -17,16 +17,14 @@ import {
   TableRow,
   IconButton,
   Chip,
-  Snackbar,
-  Alert,
-  CircularProgress,
   Box,
   MenuItem,
   Slider,
   FormControl,
   InputLabel,
   Select,
-  FormHelperText
+  FormHelperText,
+  Tooltip
 } from '@mui/material'
 import { Add as AddIcon, Delete as DeleteIcon, Edit as EditIcon } from '@mui/icons-material'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
@@ -283,54 +281,59 @@ export const Models = () => {
             <Table>
               <TableHead>
                 <TableRow>
+                  <TableCell>Manage</TableCell>
+                  <TableCell>Status</TableCell>
                   <TableCell>Name</TableCell>
                   <TableCell>Provider</TableCell>
-                  <TableCell>Model</TableCell>
-                  <TableCell>Configuration</TableCell>
-                  <TableCell>Status</TableCell>
-                  <TableCell>Actions</TableCell>
+                  <TableCell>Parameter</TableCell>
+                  <TableCell>Behavior</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {models.map((model) => {
                   const config = JSON.parse(model.configuration)
                   const provider = providers.find(p => p.id === model.provider_id)
+                  const modelDetails = getAvailableModels(model.provider_id, providers).find(m => m.id === model.model_id)
                   return (
                     <TableRow key={model.id}>
+                      <TableCell>
+                        <IconButton size="small" onClick={() => handleEdit(model)}>
+                          <EditIcon fontSize="small" />
+                        </IconButton>
+                        <IconButton size="small" color="error" onClick={() => handleDelete(model.id)}>
+                          <DeleteIcon fontSize="small" />
+                        </IconButton>
+                      </TableCell>
+                      <TableCell>
+                        <Chip
+                          label={model.is_active ? 'Active' : 'Inactive'}
+                          color={model.is_active ? 'success' : 'default'}
+                          size="small"
+                        />
+                      </TableCell>
                       <TableCell>{model.name}</TableCell>
                       <TableCell>{provider?.name || 'Unknown'}</TableCell>
-                      <TableCell>{model.model_id}</TableCell>
                       <TableCell>
+                        <Typography variant="caption" display="block">
+                          Model: {modelDetails?.name || model.model_id}
+                        </Typography>
                         <Typography variant="caption" display="block">
                           Temperature: {config.temperature}
                         </Typography>
                         <Typography variant="caption" display="block">
                           Max Tokens: {config.max_tokens}
                         </Typography>
-                        {config.behavior && (
-                          <Typography variant="caption" display="block">
-                            Behavior: {config.behavior}
+                      </TableCell>
+                      <TableCell>
+                        <Tooltip title={config.behavior || ''} placement="top" arrow>
+                          <Typography variant="caption" display="block" sx={{ whiteSpace: 'pre-line', maxWidth: 320, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {config.behavior
+                              ? config.behavior.length > 120
+                                ? config.behavior.slice(0, 120) + '...'
+                                : config.behavior
+                              : <span style={{ color: '#888' }}>—</span>}
                           </Typography>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <Chip 
-                          label={model.is_active ? 'Active' : 'Inactive'} 
-                          color={model.is_active ? 'success' : 'default'}
-                          size="small"
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <IconButton size="small" onClick={() => handleEdit(model)}>
-                          <EditIcon fontSize="small" />
-                        </IconButton>
-                        <IconButton 
-                          size="small" 
-                          color="error" 
-                          onClick={() => handleDelete(model.id)}
-                        >
-                          <DeleteIcon fontSize="small" />
-                        </IconButton>
+                        </Tooltip>
                       </TableCell>
                     </TableRow>
                   )
