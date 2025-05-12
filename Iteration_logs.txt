@@ -1,0 +1,87 @@
+# DaeAI Iteration Log
+
+This file records the development journey, decisions, and changes made to the DaeAI project. It is intended to help any future developer or AI Agent understand the context, history, and rationale behind the evolution of this app.
+
+---
+
+## [2025-05-12] Iteration Logging Initiated
+
+- At the user's request, created this ITERATION_LOG.txt file to document all significant actions, changes, and lessons learned during development.
+- Purpose: To provide transparency, context, and a reference for future contributors or AI Agents, especially as the project grows more complex.
+
+---
+
+## [2025-05-12] Recent Key Actions
+
+- Modularized backend routers for Providers, Models, and Bots.
+- Set up Git version control and added .gitattributes to handle line endings and silence CRLF/LF warnings.
+- Implemented regular checkpoints after major UI/UX or backend changes.
+- Improved sidebar navigation: grouped Provider/Model under "AI Management" and Bot Manager under "Discord Management".
+- Cleaned up sidebar by removing unnecessary separators and submenu icons.
+- Enhanced Discord bot: replaced !ping with !status, which now returns bot name, ID, version (from git), and creator ("Daevaesma") as a Discord embed card.
+- Improved Model and Provider pages: added column reordering, parameter/behavior display, and behavior truncation with tooltip.
+- All major UI/UX changes are checkpointed in Git for safe rollback.
+
+---
+
+## [2025-05-12] Added Bot-Model Integration Table
+
+- Added a new SQLAlchemy model/table `BotModelIntegration` to support many-to-many relationships between Discord bots and AI models, with a custom command for each integration (e.g., !askdesi).
+- This enables each bot to integrate with multiple models, each triggered by a unique command, as part of the new Discord Management feature.
+- No changes to existing functionality; this is a safe foundation for the new integration feature.
+
+---
+
+## [2025-05-12] Modular Bot-Model Integration API
+
+- Added modular Pydantic schemas for BotModelIntegration in `schemas/schemas.py`.
+- Created a new modular router `routers/bot_model_integrations.py` with CRUD endpoints for managing bot-model-command integrations.
+- Registered the new router in `main.py` to keep the API modular and regression-resistant.
+- All changes are isolated and do not affect existing features, minimizing regression risk.
+
+---
+
+## [2025-05-12] Bot Model Integration UI Enhancements
+
+- Added an "Integrate Models" button in the BotManager page for each bot.
+- Created a new route and page for managing bot-model integrations.
+- Button navigates to a dedicated page where users can add/remove model integrations with custom commands.
+- Maintained modular and clean UI/UX design.
+
+---
+
+## [2025-05-12] Bot Model Integration UI Completed
+
+- Successfully added "Integrate Models" button to each bot row in the BotManager page.
+- Created a dedicated route and page (`/bots/:botId/integrations`) for managing bot-model integrations.
+- Implemented frontend logic to navigate to integration management page.
+- Backend and frontend components are now fully integrated for managing bot-model relationships.
+- Maintained modular and clean UI/UX design across the application.
+
+---
+
+## [2025-05-12] Discord Bot !status Command Card Update
+
+- Updated the !status command to return a Discord embed card matching the new D.AI style: title "D.AI", Bot ID in a code block, Version and Creator fields, and the bot's avatar as a thumbnail.
+- Removed the !ping command as requested.
+- This change improves clarity and branding for bot status responses in Discord.
+
+---
+
+## Logging Instructions
+
+- For every significant change, bugfix, or lesson, add a new entry here.
+- Include the date, a brief summary, and any relevant context or reasoning.
+- If a rollback or failure occurs, document what happened and how it was resolved.
+
+---
+
+## Next Steps
+
+- Continue logging all iterations and decisions.
+- Token wise: Keep the log concise but informative.
+- Ensure all new features are documented with their purpose and any relevant context.
+- Update the log each checkpoint to ensure all changes are captured.
+- Use this file as the first point of reference for any new Agent or developer joining the project.
+
+---

@@ -34,15 +34,23 @@ class DaeBotManager:
             logger.error(f'Command error: {str(error)}')
             await ctx.send(f'Error executing command: {str(error)}')
 
-        @bot.command(name='ping')
-        async def ping(ctx):
-            logger.info(f'Executing ping command for {ctx.author} in {ctx.guild.name if ctx.guild else "DM"}')
+        # Removed the !ping command as requested
+
+        @bot.command(name='status')
+        async def status(ctx):
+            import discord
+            import subprocess
+            # Get version from git
             try:
-                await ctx.send(f'🟢 Bot is active! Response time: {round(bot.latency * 1000)}ms')
-                logger.info('Ping command executed successfully')
-            except Exception as e:
-                logger.error(f'Error in ping command: {str(e)}')
-                raise
+                version = subprocess.check_output(['git', 'describe', '--tags', '--always'], cwd='..').decode().strip()
+            except Exception:
+                version = 'unknown'
+            embed = discord.Embed(title="D.AI", color=0x23272A)
+            embed.add_field(name="Bot ID:", value=f"`{bot.user.id}`", inline=False)
+            embed.add_field(name="Version", value=version, inline=True)
+            embed.add_field(name="Creator", value="Daevaesma", inline=True)
+            embed.set_thumbnail(url=bot.user.avatar.url if bot.user.avatar else discord.Embed.Empty)
+            await ctx.send(embed=embed)
 
     async def create_bot(self, bot_id: int, token: str, name: str) -> Tuple[bool, str]:
         try:
