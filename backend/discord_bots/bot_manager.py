@@ -9,6 +9,7 @@ from sqlalchemy.orm import sessionmaker
 from config.database import SQLALCHEMY_DATABASE_URL
 from models import models as db_models
 from discord_bots.bot_models import DiscordBot
+import json
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -112,17 +113,29 @@ class DaeBotManager:
                             return
                         try:
                             model_id_for_api = getattr(_model, 'model_id', None) or getattr(_model, 'name', None)
+                            # --- Persona/Behavior injection ---
+                            persona = None
+                            try:
+                                config_json = json.loads(getattr(_model, 'configuration', '{}') or '{}')
+                                persona = config_json.get('behavior') or config_json.get('persona')
+                            except Exception:
+                                persona = None
                             # --- OpenAI ---
                             if _provider and _provider.name.lower() == 'openai':
                                 import openai
                                 openai.api_key = _provider.api_key
+                                messages = []
+                                if persona:
+                                    messages.append({"role": "system", "content": persona})
+                                messages.append({"role": "user", "content": prompt})
                                 response = openai.ChatCompletion.create(
                                     model=model_id_for_api,
-                                    messages=[{"role": "user", "content": prompt}],
+                                    messages=messages,
                                     **(_integration_config or {})
                                 )
                                 reply = response['choices'][0]['message']['content']
-                                await ctx.send(reply)
+                                for chunk in split_message_chunks(reply):
+                                    await ctx.send(chunk)
                             # --- Anthropic ---
                             elif _provider and _provider.name.lower() == 'anthropic':
                                 import requests
@@ -133,16 +146,21 @@ class DaeBotManager:
                                     "anthropic-version": "2023-06-01",
                                     "content-type": "application/json"
                                 }
+                                messages = []
+                                if persona:
+                                    messages.append({"role": "system", "content": persona})
+                                messages.append({"role": "user", "content": prompt})
                                 data = {
                                     "model": model_id_for_api,
                                     "max_tokens": _integration_config.get("max_tokens", 1024) if _integration_config else 1024,
-                                    "messages": [{"role": "user", "content": prompt}],
+                                    "messages": messages,
                                     "temperature": _integration_config.get("temperature", 0.7) if _integration_config else 0.7
                                 }
                                 resp = requests.post(api_url, json=data, headers=headers, timeout=30)
                                 if resp.status_code == 200:
                                     reply = resp.json().get('content', [{}])[0].get('text', 'No response')
-                                    await ctx.send(reply)
+                                    for chunk in split_message_chunks(reply):
+                                        await ctx.send(chunk)
                                 else:
                                     await ctx.send(f"Anthropic API error: {resp.status_code} {resp.text}")
                             # --- Gemini ---
@@ -151,14 +169,19 @@ class DaeBotManager:
                                 api_key = _provider.api_key
                                 api_url = getattr(_provider, 'api_url', f"https://generativelanguage.googleapis.com/v1beta/models/{model_id_for_api}:generateContent?key={api_key}")
                                 headers = {"content-type": "application/json"}
+                                parts = []
+                                if persona:
+                                    parts.append({"text": persona})
+                                parts.append({"text": prompt})
                                 data = {
-                                    "contents": [{"parts": [{"text": prompt}]}]
+                                    "contents": [{"parts": parts}]
                                 }
                                 resp = requests.post(api_url, json=data, headers=headers, timeout=30)
                                 if resp.status_code == 200:
                                     candidates = resp.json().get('candidates', [])
                                     reply = candidates[0]['content']['parts'][0]['text'] if candidates and 'content' in candidates[0] and 'parts' in candidates[0]['content'] and candidates[0]['content']['parts'] else 'No response'
-                                    await ctx.send(reply)
+                                    for chunk in split_message_chunks(reply):
+                                        await ctx.send(chunk)
                                 else:
                                     await ctx.send(f"Gemini API error: {resp.status_code} {resp.text}")
                             # --- DeepSeek ---
@@ -170,16 +193,21 @@ class DaeBotManager:
                                     "Authorization": f"Bearer {api_key}",
                                     "content-type": "application/json"
                                 }
+                                messages = []
+                                if persona:
+                                    messages.append({"role": "system", "content": persona})
+                                messages.append({"role": "user", "content": prompt})
                                 data = {
                                     "model": model_id_for_api,
-                                    "messages": [{"role": "user", "content": prompt}],
+                                    "messages": messages,
                                     "max_tokens": _integration_config.get("max_tokens", 1024) if _integration_config else 1024,
                                     "temperature": _integration_config.get("temperature", 0.7) if _integration_config else 0.7
                                 }
                                 resp = requests.post(api_url, json=data, headers=headers, timeout=30)
                                 if resp.status_code == 200:
                                     reply = resp.json().get('choices', [{}])[0].get('message', {}).get('content', 'No response')
-                                    await ctx.send(reply)
+                                    for chunk in split_message_chunks(reply):
+                                        await ctx.send(chunk)
                                 else:
                                     await ctx.send(f"DeepSeek API error: {resp.status_code} {resp.text}")
                             # --- Mistral ---
@@ -191,23 +219,31 @@ class DaeBotManager:
                                     "Authorization": f"Bearer {api_key}",
                                     "content-type": "application/json"
                                 }
+                                messages = []
+                                if persona:
+                                    messages.append({"role": "system", "content": persona})
+                                messages.append({"role": "user", "content": prompt})
                                 data = {
                                     "model": model_id_for_api,
-                                    "messages": [{"role": "user", "content": prompt}],
+                                    "messages": messages,
                                     "max_tokens": _integration_config.get("max_tokens", 1024) if _integration_config else 1024,
                                     "temperature": _integration_config.get("temperature", 0.7) if _integration_config else 0.7
                                 }
                                 resp = requests.post(api_url, json=data, headers=headers, timeout=30)
                                 if resp.status_code == 200:
                                     reply = resp.json().get('choices', [{}])[0].get('message', {}).get('content', 'No response')
-                                    await ctx.send(reply)
+                                    for chunk in split_message_chunks(reply):
+                                        await ctx.send(chunk)
                                 else:
                                     await ctx.send(f"Mistral API error: {resp.status_code} {resp.text}")
                             else:
-                                await ctx.send(f"[Model {_model_id}] Provider not supported or not configured.")
+                                await ctx.send(f"Unsupported provider: {getattr(_provider, 'name', 'Unknown')}")
+                        
                         except Exception as e:
-                            logger.error(f"Model call failed: {str(e)}")
-                            await ctx.send(f"Error: Model call failed. {str(e)}")
+                            logger.error(f"Error in custom model command: {traceback.format_exc()}")
+                            error_chunks = split_message_chunks(f"An error occurred: {str(e)}\n\nDetails:\n{traceback.format_exc()}")
+                            for chunk in error_chunks:
+                                await ctx.send(chunk)
                     custom_model_command.__name__ = command_name
                     bot.command(name=command_name)(custom_model_command)
             finally:
@@ -270,3 +306,69 @@ class DaeBotManager:
 
 # Create a global bot manager instance
 bot_manager = DaeBotManager()
+
+def split_message_chunks(message, chunk_size=2000, code_block=False):
+    """
+    Split a long message into chunks suitable for Discord (max 2000 chars).
+    
+    Args:
+        message (str): The message to split
+        chunk_size (int): Maximum size of each chunk (default: 2000)
+        code_block (bool): Whether to wrap each chunk in a code block (optional)
+    
+    Returns:
+        list: A list of message chunks
+    """
+    # Handle None or empty messages
+    if not message:
+        return []
+    
+    # Convert message to string to ensure consistent handling
+    message = str(message)
+    
+    # Adjust chunk size for code block markers if needed
+    if code_block:
+        chunk_size -= 6  # Account for ```\n and ```
+    
+    # If message is already short enough, return as single chunk
+    if len(message) <= chunk_size:
+        return [f"```{message}```"] if code_block else [message]
+    
+    # Split message into chunks, trying to split at whitespace
+    chunks = []
+    while message:
+        # Prepare chunk with code block if needed
+        if code_block:
+            # If remaining message is short, include entire message
+            if len(message) <= chunk_size:
+                chunks.append(f"```{message}```")
+                break
+            
+            # Find the last whitespace before chunk_size
+            split_index = message[:chunk_size].rfind(' ')
+            
+            # If no whitespace found, force split at chunk_size
+            if split_index == -1:
+                split_index = chunk_size
+            
+            # Add chunk and continue with remaining message
+            chunks.append(f"```{message[:split_index].strip()}```")
+            message = message[split_index:].strip()
+        else:
+            # If message is already short enough, add and break
+            if len(message) <= chunk_size:
+                chunks.append(message)
+                break
+            
+            # Find the last whitespace before chunk_size
+            split_index = message[:chunk_size].rfind(' ')
+            
+            # If no whitespace found, force split at chunk_size
+            if split_index == -1:
+                split_index = chunk_size
+            
+            # Add chunk and continue with remaining message
+            chunks.append(message[:split_index].strip())
+            message = message[split_index:].strip()
+    
+    return chunks
