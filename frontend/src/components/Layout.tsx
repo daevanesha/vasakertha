@@ -19,40 +19,60 @@ import {
   Psychology as PsychologyIcon,
   SmartButton as BotIcon
 } from '@mui/icons-material'
+import Collapse from '@mui/material/Collapse';
+import ExpandLess from '@mui/icons-material/ExpandLess';
+import ExpandMore from '@mui/icons-material/ExpandMore';
 
 const drawerWidth = 240
 
 export const Layout = () => {
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [aiOpen, setAiOpen] = useState(true);
+  const [discordOpen, setDiscordOpen] = useState(true);
   const navigate = useNavigate()
 
   const  handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen)
   }
   
-  const menuItems = [
-    { text: 'Dashboard', icon: <DashboardIcon />, path: '/' },
-    { text: 'AI Providers', icon: <SmartToyIcon />, path: '/providers' },
-    { text: 'Models', icon: <PsychologyIcon />, path: '/models' },
-    { text: 'Bot Manager', icon: <BotIcon />, path: '/bots' }
-  ]
-
   const drawer = (
     <Box>
       <Toolbar />
       <List>
-        {menuItems.map((item) => (
-          <ListItemButton 
-            key={item.text} 
-            onClick={() => {
-              navigate(item.path)
-              setMobileOpen(false)
-            }}
-          >
-            <ListItemIcon>{item.icon}</ListItemIcon>
-            <ListItemText primary={item.text} />
-          </ListItemButton>
-        ))}
+        <ListItemButton onClick={() => { navigate('/'); setMobileOpen(false); }}>
+          <ListItemIcon><DashboardIcon /></ListItemIcon>
+          <ListItemText primary="Dashboard" />
+        </ListItemButton>
+        <ListItemButton onClick={() => setAiOpen(!aiOpen)}>
+          <ListItemIcon><SmartToyIcon /></ListItemIcon>
+          <ListItemText primary="AI Management" />
+          {aiOpen ? <ExpandLess /> : <ExpandMore />}
+        </ListItemButton>
+        <Collapse in={aiOpen} timeout="auto" unmountOnExit>
+          <List component="div" disablePadding>
+            <ListItemButton sx={{ pl: 4 }} onClick={() => { navigate('/providers'); setMobileOpen(false); }}>
+              {/* No icon for submenu */}
+              <ListItemText primary="Provider" />
+            </ListItemButton>
+            <ListItemButton sx={{ pl: 4 }} onClick={() => { navigate('/models'); setMobileOpen(false); }}>
+              {/* No icon for submenu */}
+              <ListItemText primary="Model" />
+            </ListItemButton>
+          </List>
+        </Collapse>
+        <ListItemButton onClick={() => setDiscordOpen(!discordOpen)}>
+          <ListItemIcon><BotIcon /></ListItemIcon>
+          <ListItemText primary="Discord Management" />
+          {discordOpen ? <ExpandLess /> : <ExpandMore />}
+        </ListItemButton>
+        <Collapse in={discordOpen} timeout="auto" unmountOnExit>
+          <List component="div" disablePadding>
+            <ListItemButton sx={{ pl: 4 }} onClick={() => { navigate('/bots'); setMobileOpen(false); }}>
+              {/* No icon for submenu */}
+              <ListItemText primary="Bot Manager" />
+            </ListItemButton>
+          </List>
+        </Collapse>
       </List>
     </Box>
   )
