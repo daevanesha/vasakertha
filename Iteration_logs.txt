@@ -68,6 +68,15 @@ This file records the development journey, decisions, and changes made to the Da
 
 ---
 
+## [2025-05-12] v1.0-multiprovider-stable: Full Multi-Provider Discord Bot Integration Stable Checkpoint
+
+- All major AI providers (OpenAI, Anthropic, Gemini, DeepSeek, Mistral) are now fully supported in the Discord bot backend, with correct API request/response handling per official docs.
+- Dynamic command registration for each bot-model-command integration, robust error handling, and prevention of misconfiguration in the UI.
+- Fixed all known issues with provider/model routing, error feedback, and API parameter usage (e.g., DeepSeek model_id).
+- Stable, production-ready checkpoint. Tag: v1.0-multiprovider-stable
+
+---
+
 ## Logging Instructions
 
 - For every significant change, bugfix, or lesson, add a new entry here.
