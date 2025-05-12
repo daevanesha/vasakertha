@@ -28,3 +28,18 @@ class AIModel(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     provider = relationship("AIProvider", back_populates="models")
+
+class BotModelIntegration(Base):
+    __tablename__ = "bot_model_integrations"
+
+    id = Column(Integer, primary_key=True, index=True)
+    bot_id = Column(Integer, ForeignKey("discord_bots.id"))
+    model_id = Column(Integer, ForeignKey("ai_models.id"))
+    command = Column(String, nullable=False)
+    # Optionally, add config if you use it: config = Column(Text)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationships
+    bot = relationship("DiscordBot", backref="model_integrations")
+    model = relationship("AIModel")

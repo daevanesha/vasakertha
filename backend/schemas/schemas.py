@@ -48,3 +48,27 @@ class AIModel(AIModelBase):
 
     class Config:
         from_attributes = True
+
+# Bot Model Integration Schemas
+class BotModelIntegrationBase(BaseModelWithConfig):
+    bot_id: int
+    model_id: int
+    command: str
+    # Optionally, you can add config: dict = {} if you use it
+    # config: Optional[dict] = None
+
+class BotModelIntegrationCreate(BotModelIntegrationBase):
+    pass
+
+class BotModelIntegrationUpdate(BaseModelWithConfig):
+    model_id: Optional[int] = None
+    command: Optional[str] = None
+    # config: Optional[dict] = None
+
+class BotModelIntegration(BotModelIntegrationBase):
+    id: int
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
