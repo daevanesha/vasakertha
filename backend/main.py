@@ -12,6 +12,8 @@ import asyncio
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 from routers import providers, models as models_router, bots, bot_model_integrations
+from fastapi.staticfiles import StaticFiles
+import os
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -49,10 +51,10 @@ app = FastAPI(title="AI Discord Manager API")
 # Configure CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allow all origins for development; restrict in production
+    allow_origins=["*"],  # Use a list of valid origins, e.g. ["http://localhost:5173"] in production
     allow_credentials=True,
     allow_methods=["*"],
-    allow_headers=["*"],
+    allow_headers=["*"]
 )
 
 # Register modular routers
@@ -60,3 +62,8 @@ app.include_router(providers.router)
 app.include_router(models_router.router)
 app.include_router(bots.router)
 app.include_router(bot_model_integrations.router)
+
+# Serve static files for model images
+static_dir = os.path.join(os.path.dirname(__file__), '../static/model_images')
+os.makedirs(static_dir, exist_ok=True)
+app.mount("/static/model_images", StaticFiles(directory=static_dir), name="model_images")

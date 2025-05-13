@@ -55,51 +55,6 @@ class DaeBotManager:
             embed.add_field(name="Version", value=version, inline=True)
             embed.set_thumbnail(url=bot.user.avatar.url if bot.user.avatar else discord.Embed.Empty)
 
-            # --- Enhancement: List integrated models/commands ---
-            # DB access for integrations
-            engine = sqlalchemy.create_engine(SQLALCHEMY_DATABASE_URL)
-            SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-            session = SessionLocal()
-            try:
-                bot_db = session.query(DiscordBot).filter(DiscordBot.name == name).first()
-                if bot_db:
-                    integrations = session.query(db_models.BotModelIntegration).filter(db_models.BotModelIntegration.bot_id == bot_db.id).all()
-                    if integrations:
-                        lines = []
-                        for integration in integrations:
-                            model = session.query(db_models.AIModel).filter(db_models.AIModel.id == integration.model_id).first()
-                            provider = session.query(db_models.AIProvider).filter(db_models.AIProvider.id == model.provider_id).first() if model else None
-                            model_name = model.name if model else str(integration.model_id)
-                            provider_name = provider.name if provider else 'Unknown'
-                            # Get temperature from config if available
-                            temp = None
-                            try:
-                                config_json = json.loads(getattr(model, 'configuration', '{}') or '{}')
-                                temp = config_json.get('temperature')
-                            except Exception:
-                                temp = None
-                            # Try integration config as fallback
-                            if temp is None and hasattr(integration, 'config') and integration.config:
-                                try:
-                                    if isinstance(integration.config, dict):
-                                        temp = integration.config.get('temperature')
-                                    else:
-                                        temp = json.loads(integration.config).get('temperature')
-                                except Exception:
-                                    temp = None
-                            temp_str = f" | T={temp}" if temp is not None else ""
-                            lines.append(f"`{integration.command}` → {model_name} ({provider_name}{temp_str})")
-                        embed.add_field(name="Integrated Commands", value="\n".join(lines), inline=False)
-                    else:
-                        embed.add_field(name="Integrated Commands", value="No model integrations configured.", inline=False)
-                else:
-                    embed.add_field(name="Integrated Commands", value="Bot not found in DB.", inline=False)
-            except Exception as e:
-                embed.add_field(name="Integrated Commands", value=f"Error loading integrations: {e}", inline=False)
-            finally:
-                session.close()
-            # --- End enhancement ---
-
             # --- General Commands Section ---
             general_commands = [
                 ("!status", "Show this status card"),
@@ -157,6 +112,69 @@ class DaeBotManager:
                 embed.add_field(name="Recent Checkpoints", value="No recent checkpoints found.", inline=False)
             embed.set_footer(text="Develop by Daevaesma | auto-generated from git log")
             await ctx.send(embed=embed)
+
+        @bot.command(name='models')
+        async def models(ctx):
+            import discord
+            session = SessionLocal()
+            try:
+                bot_db = session.query(DiscordBot).filter(DiscordBot.name == name).first()
+                if not bot_db:
+                    await ctx.send("No bot found in database.")
+                    return
+                integrations = session.query(db_models.BotModelIntegration).filter(db_models.BotModelIntegration.bot_id == bot_db.id).all()
+                if not integrations:
+                    await ctx.send("No model integrations found for this bot.")
+                    return
+                sent = False
+                for integration in integrations:
+                    model = session.query(db_models.AIModel).filter(db_models.AIModel.id == integration.model_id).first()
+                    if not model:
+                        continue
+                    # Always fetch the latest image_url from the DB
+                    image_url = getattr(model, 'image_url', None)
+                    # Always use a valid public base URL (localhost for dev)
+                    if image_url and isinstance(image_url, str):
+                        if image_url.startswith("/model_images/"):
+                            image_url = f"http://localhost:8000{image_url}"
+                        elif image_url.startswith("/static/model_images/"):
+                            image_url = f"http://localhost:8000{image_url[7:]}"
+                    command = integration.command
+                    model_name = getattr(model, 'name', 'Unknown')
+                    short_desc = getattr(model, 'short_description', None) or getattr(model, 'description', None) or 'No description.'
+                    tags = getattr(model, 'tags', None) or []
+                    if isinstance(tags, str):
+                        try:
+                            tags = json.loads(tags)
+                        except Exception:
+                            tags = [tags]
+                    is_active = getattr(model, 'active', None)
+                    if is_active is None:
+                        is_active = getattr(model, 'is_active', True)
+                    status = ':green_circle: Active' if is_active else ':red_circle: Inactive'
+                    if not is_active:
+                        continue
+                    if not isinstance(tags, list):
+                        tags = []
+                    tags_str = ', '.join([f'`{t}`' for t in tags[:5]]) if tags else 'None'
+                    value = f"**Command:** `{command}`\n**Status:** {status}\n**Tags:** {tags_str}\n{short_desc}"
+                    embed = discord.Embed(title=model_name, description=short_desc, color=0x00BFFF)
+                    embed.add_field(name="Command", value=f"`{command}`", inline=True)
+                    embed.add_field(name="Status", value=status, inline=True)
+                    embed.add_field(name="Tags", value=tags_str, inline=False)
+                    # Set model image as thumbnail if available and valid
+                    if image_url and (image_url.startswith("http://") or image_url.startswith("https://")):
+                        embed.set_thumbnail(url=image_url)
+                        logger.info(f"Set Discord embed thumbnail for model {model_name}: {image_url}")
+                    else:
+                        logger.warning(f"No valid image_url for model {model_name}: {image_url}")
+                    embed.set_footer(text="Only active models are available for use.")
+                    await ctx.send(embed=embed)
+                    sent = True
+                if not sent:
+                    await ctx.send("No active models with images found for this bot.")
+            finally:
+                session.close()
 
         # Dynamically register custom commands for model integrations
         engine = sqlalchemy.create_engine(SQLALCHEMY_DATABASE_URL)
@@ -469,7 +487,7 @@ def split_message_chunks(message, chunk_size=2000, code_block=False):
             
             # Add chunk and continue with remaining message
             chunks.append(f"```{message[:split_index].strip()}```")
-            message = message[split_index:].trip()
+            message = message[split_index:].strip()
         else:
             # If message is already short enough, add and break
             if len(message) <= chunk_size:

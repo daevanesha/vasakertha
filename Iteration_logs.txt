@@ -94,6 +94,24 @@ This file records the development journey, decisions, and changes made to the Da
 
 ---
 
+# Iteration Log - v1.2 (2025-05-13)
+
+- Refactored !status command:
+  - Removed bot ID from status card.
+  - Changed "Creator Daevaesma" to "Develop by Daevaesma" and moved to footer.
+  - Added "General Commands" section below "Integrated Commands", listing only !status and !devinfo.
+  - Removed !help from general commands list.
+- Implemented !devinfo command:
+  - Card titled "Development Information".
+  - Displays current bot version (from git tag/commit).
+  - Shows checklist of last 10 git commit messages (auto-updating from git log).
+  - Truncates checklist if it exceeds Discord's 1024-character embed field limit.
+  - Footer: "Develop by Daevaesma | auto-generated from git log".
+- Both version and checklist in !devinfo auto-update with git history.
+- Created stable checkpoint commit and tagged as v1.2 in git.
+
+---
+
 ## Logging Instructions
 
 - For every significant change, bugfix, or lesson, add a new entry here.

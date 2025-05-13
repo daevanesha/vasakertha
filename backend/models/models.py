@@ -26,7 +26,10 @@ class AIModel(Base):
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    
+    short_description = Column(String(256), default="")
+    tags = Column(Text, default="[]")  # JSON-encoded list of up to 5 tags
+    active = Column(Boolean, default=True)
+    image_url = Column(String(512), default="")  # New: URL to model image
     provider = relationship("AIProvider", back_populates="models")
 
 class BotModelIntegration(Base):
@@ -43,3 +46,12 @@ class BotModelIntegration(Base):
     # Relationships
     bot = relationship("DiscordBot", backref="model_integrations")
     model = relationship("AIModel")
+
+# Migration helper for image_url (manual, if not using Alembic)
+def add_image_url_column(engine):
+    from sqlalchemy import text
+    with engine.connect() as conn:
+        try:
+            conn.execute(text('ALTER TABLE ai_models ADD COLUMN image_url VARCHAR(512) DEFAULT ""'))
+        except Exception as e:
+            print(f"[Migration] image_url column may already exist: {e}")

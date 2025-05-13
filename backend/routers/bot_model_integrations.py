@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks, File, UploadFile, Form, Request
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from config.database import get_db
@@ -7,6 +7,7 @@ from schemas import schemas
 from typing import List
 from routers.bots import bot_runner
 from discord_bots.bot_models import DiscordBot
+import os
 
 router = APIRouter(prefix="/bot-model-integrations", tags=["bot-model-integrations"])
 
@@ -284,3 +285,55 @@ def delete_integration(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, 
             detail=f"Error deleting integration: {str(e)}"
         )
+
+@router.get("/model/{model_id}", response_model=schemas.AIModel)
+def get_model_info(model_id: int, db: Session = Depends(get_db), request: Request = None):
+    model = db.query(models.AIModel).filter(models.AIModel.id == model_id).first()
+    if not model:
+        raise HTTPException(status_code=404, detail="Model not found")
+    if model.image_url and not model.image_url.startswith("http") and request:
+        base_url = str(request.base_url).rstrip('/')
+        model.image_url = f"{base_url}{model.image_url}"
+    return model
+
+@router.put("/model/{model_id}", response_model=schemas.AIModel)
+def update_model_info(model_id: int, model_update: schemas.AIModelUpdate, db: Session = Depends(get_db), request: Request = None):
+    model = db.query(models.AIModel).filter(models.AIModel.id == model_id).first()
+    if not model:
+        raise HTTPException(status_code=404, detail="Model not found")
+    for key, value in model_update.dict(exclude_unset=True).items():
+        if key == "tags" and value is not None:
+            # Validate max 5 tags
+            if isinstance(value, list) and len(value) > 5:
+                raise HTTPException(status_code=400, detail="Maximum 5 tags allowed.")
+        setattr(model, key, value)
+    db.commit()
+    db.refresh(model)
+    # Return absolute image_url if set
+    if model.image_url and not model.image_url.startswith("http") and request:
+        base_url = str(request.base_url).rstrip('/')
+        model.image_url = f"{base_url}{model.image_url}"
+    return model
+
+@router.post("/model/{model_id}/upload_image", response_model=schemas.AIModel)
+def upload_model_image(model_id: int, file: UploadFile = File(...), db: Session = Depends(get_db), request: Request = None):
+    model = db.query(models.AIModel).filter(models.AIModel.id == model_id).first()
+    if not model:
+        raise HTTPException(status_code=404, detail="Model not found")
+    # Save file to static directory
+    static_dir = os.path.join(os.path.dirname(__file__), '../../static/model_images')
+    os.makedirs(static_dir, exist_ok=True)
+    filename = f"model_{model_id}_{file.filename}"
+    file_path = os.path.join(static_dir, filename)
+    with open(file_path, "wb") as f:
+        f.write(file.file.read())
+    # Set image_url (relative path)
+    rel_url = f"/model_images/{filename}"
+    model.image_url = rel_url
+    db.commit()
+    db.refresh(model)
+    # Return absolute URL
+    if request:
+        base_url = str(request.base_url).rstrip('/')
+        model.image_url = f"{base_url}{rel_url}"
+    return model

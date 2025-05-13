@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from config.database import get_db
 from models import models
@@ -15,9 +15,33 @@ def create_model(model: schemas.AIModelCreate, db: Session = Depends(get_db)):
     return db_model
 
 @router.get("/", response_model=list[schemas.AIModel])
-def get_models(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    models_list = db.query(models.AIModel).offset(skip).limit(limit).all()
+def list_models(skip: int = 0, limit: int = 100, db: Session = Depends(get_db), request: Request = None):
+    models_ = db.query(models.AIModel).offset(skip).limit(limit).all()
+    # Patch image_url to absolute
+    if request:
+        base_url = str(request.base_url).rstrip('/')
+        for m in models_:
+            if m.image_url and not m.image_url.startswith("http"):
+                m.image_url = f"{base_url}{m.image_url}"
+    return models_
+
+@router.get("/active", response_model=list[schemas.AIModel])
+def get_active_models(db: Session = Depends(get_db), request: Request = None):
+    models_list = db.query(models.AIModel).filter(models.AIModel.active == True).all()
+    if request:
+        base_url = str(request.base_url).rstrip('/')
+        for m in models_list:
+            if m.image_url and not m.image_url.startswith("http"):
+                m.image_url = f"{base_url}{m.image_url}"
     return models_list
+
+@router.get("/{model_id}", response_model=schemas.AIModel)
+def get_model(model_id: int, db: Session = Depends(get_db), request: Request = None):
+    model = db.query(models.AIModel).filter(models.AIModel.id == model_id).first()
+    if model and model.image_url and not model.image_url.startswith("http") and request:
+        base_url = str(request.base_url).rstrip('/')
+        model.image_url = f"{base_url}{model.image_url}"
+    return model
 
 @router.put("/{model_id}", response_model=schemas.AIModel)
 def update_model(model_id: int, model: schemas.AIModelUpdate, db: Session = Depends(get_db)):
