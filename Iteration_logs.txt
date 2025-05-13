@@ -112,6 +112,25 @@ This file records the development journey, decisions, and changes made to the Da
 
 ---
 
+## [2025-05-14] Major Model Info, Image, and Discord Bot Enhancements
+
+- Added per-user, per-model short-term memory to Discord bot model commands for improved context retention.
+- Implemented `!models` command in the Discord bot to display all available models/personas with info, status, and image thumbnails.
+- Updated backend models, schemas, and API endpoints to support `short_description`, `tags` (with validation, max 5), `active/inactive` status, and `image_url` fields for models.
+- Added image upload endpoint and static file serving for model images; ensured backend always returns absolute URLs for images.
+- Updated frontend (AI Model Page) to allow editing model descriptions, tags, status, and uploading/displaying images. Improved tag input and status chip UI/UX.
+- Ensured model images display correctly in both the web UI and Discord bot info cards (with fallback and logging).
+- Fixed CORS configuration to use a valid list for `allow_origins`.
+- Ran and removed migration scripts after confirming DB schema updates (including `image_url` column).
+- Cleaned up workspace: removed test images, migration scripts, utility scripts, and all `__pycache__` folders.
+- Created a git checkpoint for this iteration.
+
+**Next Steps:**
+- (Optional/future) Deploy backend or use public image hosting for Discord image support in production.
+- Continue refining UI/UX and model management features as needed.
+
+---
+
 ## Logging Instructions
 
 - For every significant change, bugfix, or lesson, add a new entry here.
