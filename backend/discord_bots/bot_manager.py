@@ -52,7 +52,6 @@ class DaeBotManager:
             except Exception:
                 version = 'unknown'
             embed = discord.Embed(title="D.AI", color=0x23272A)
-            embed.add_field(name="Bot ID:", value=f"`{bot.user.id}`", inline=False)
             embed.add_field(name="Version", value=version, inline=True)
             embed.set_thumbnail(url=bot.user.avatar.url if bot.user.avatar else discord.Embed.Empty)
 
@@ -101,9 +100,62 @@ class DaeBotManager:
                 session.close()
             # --- End enhancement ---
 
-            # Add Creator at the bottom
-            embed.add_field(name="Creator", value="Daevaesma", inline=False)
+            # --- General Commands Section ---
+            general_commands = [
+                ("!status", "Show this status card"),
+                ("!devinfo", "Show development info card"),
+            ]
+            embed.add_field(
+                name="General Commands",
+                value="\n".join([f"`{cmd}` — {desc}" for cmd, desc in general_commands]),
+                inline=False
+            )
 
+            # Set footer
+            embed.set_footer(text="Develop by Daevaesma")
+
+            await ctx.send(embed=embed)
+
+        @bot.command(name='devinfo')
+        async def devinfo(ctx):
+            import discord
+            import subprocess
+            # Get version from git
+            try:
+                version = subprocess.check_output(['git', 'describe', '--tags', '--always'], cwd='..').decode().strip()
+            except Exception:
+                version = 'unknown'
+            # Get last 10 git commit messages (checkpoints)
+            try:
+                log_output = subprocess.check_output(['git', 'log', '-10', '--pretty=format:%s'], cwd='..').decode().strip()
+                checkpoints = log_output.split('\n') if log_output else []
+            except Exception:
+                checkpoints = []
+            embed = discord.Embed(title="Development Information", color=0x5865F2)
+            embed.add_field(name="Version", value=version, inline=False)
+            # Discord embed field value limit is 1024 chars
+            if checkpoints:
+                lines = [f"- {msg}" for msg in checkpoints]
+                value = "\n".join(lines)
+                if len(value) > 1024:
+                    # Truncate and add ellipsis if too long
+                    allowed = []
+                    total = 0
+                    for line in lines:
+                        if total + len(line) + 1 > 1024:
+                            break
+                        allowed.append(line)
+                        total += len(line) + 1
+                    value = "\n".join(allowed)
+                    value += "\n... (truncated)"
+                embed.add_field(
+                    name="Recent Checkpoints",
+                    value=value,
+                    inline=False
+                )
+            else:
+                embed.add_field(name="Recent Checkpoints", value="No recent checkpoints found.", inline=False)
+            embed.set_footer(text="Develop by Daevaesma | auto-generated from git log")
             await ctx.send(embed=embed)
 
         # Dynamically register custom commands for model integrations
