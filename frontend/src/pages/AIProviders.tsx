@@ -54,10 +54,14 @@ export const AIProviders = () => {
   const [editForm, setEditForm] = useState<ProviderForm>({ name: '', api_key: '' })
   const [showEditApiKey, setShowEditApiKey] = useState(false)
   const queryClient = useQueryClient()
-
   const { data: providers = [], isLoading } = useQuery<Provider[]>({
     queryKey: ['providers'],
-    queryFn: () => api.get('/providers/').then(res => res.data)
+    queryFn: async () => {
+      const res = await api.get('/providers/');
+      if (Array.isArray(res)) return res;
+      if (res && Array.isArray(res.data)) return res.data;
+      return [];
+    }
   })
 
   const createProvider = useMutation({

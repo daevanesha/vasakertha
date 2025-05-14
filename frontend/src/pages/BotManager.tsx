@@ -31,6 +31,7 @@ import AssignmentIndIcon from '@mui/icons-material/AssignmentInd';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm, Controller } from 'react-hook-form';
 import { api } from '../utils/api';
+import { useNavigate } from 'react-router-dom';
 
 type DiscordBot = {
   id: number;
@@ -56,6 +57,7 @@ export const BotManager = () => {
 
   const { control, handleSubmit, reset } = useForm<BotForm>();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   // Fetch bots with error handling
   const { data: bots = [], isLoading, isError } = useQuery<DiscordBot[]>({
@@ -252,7 +254,7 @@ export const BotManager = () => {
                       <IconButton
                         size="small"
                         color="primary"
-                        onClick={() => window.location.href = `/bot-integrations/${encodeURIComponent(bot.name)}`}
+                        onClick={() => navigate(`/bot-integrations/${bot.id}`)}
                         title="Integrate Models"
                         style={{ marginRight: 4 }}
                       >

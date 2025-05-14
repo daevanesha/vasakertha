@@ -145,6 +145,18 @@ This file records the development journey, decisions, and changes made to the Da
 
 ---
 
+## [2025-05-14] v1.5 Checkpoint — Frontend API Response Fixes
+
+- Fixed frontend to handle both array and object responses from /models/ and /providers/ endpoints.
+- Restored dashboard and data display after previous breaking change.
+- Created a git checkpoint and tagged as v1.5.
+
+**Next Steps:**
+- Continue to monitor for any further API/response mismatches.
+- Use this checkpoint as a stable baseline for further UI/UX improvements.
+
+---
+
 ## Logging Instructions
 
 - For every significant change, bugfix, or lesson, add a new entry here.

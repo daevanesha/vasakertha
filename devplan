@@ -1,0 +1,13 @@
+1. Add OpenRouter as a Distinct Provider
+In your Provider menu, add OpenRouter as a new provider entry (just like OpenAI or DeepSeek).
+Store its API key and endpoint as usual.
+2. Distinguish OpenRouter Models in the Models Menu
+When adding a model and the provider is OpenRouter, fetch the list of available models from OpenRouter’s API.
+When saving a model, store an extra field (e.g., is_openrouter: true or source: 'openrouter') to mark it as an OpenRouter model.
+Optionally, display a badge or label in your Models menu and dashboard to indicate “OpenRouter Model”.
+3. Backend/API Handling
+When sending requests, check if the model is from OpenRouter (using the extra field) and route the API call to OpenRouter’s endpoint with the correct model ID and API key.
+For other providers, keep your existing logic.
+4. User Experience
+In the UI, you can show OpenRouter models grouped or labeled, so users know which models are from OpenRouter.
+This keeps your system organized and avoids confusion.

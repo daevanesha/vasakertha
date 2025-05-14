@@ -3,7 +3,7 @@ import {
   Button, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, MenuItem, Paper, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Typography
 } from '@mui/material';
 import { Add as AddIcon, Delete as DeleteIcon } from '@mui/icons-material';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { api } from '../utils/api';
 
 interface Model {
@@ -22,25 +22,27 @@ interface Integration {
 }
 
 export const BotModelIntegration = () => {
-  const { botName } = useParams<{ botName: string }>();
-  const navigate = useNavigate();
+  const { botId } = useParams<{ botId: string }>();
   const [integrations, setIntegrations] = useState<Integration[]>([]);
   const [models, setModels] = useState<Model[]>([]);
   const [open, setOpen] = useState(false);
   const [command, setCommand] = useState('');
   const [modelId, setModelId] = useState<number | ''>('');
   const [saving, setSaving] = useState(false);
-  const [botId, setBotId] = useState<number | null>(null);
 
   useEffect(() => {
-    api.get('/discord-bots/').then(botsRes => {
-      const bot = botsRes.data.find((b: any) => b.name === botName);
-      if (!bot) return;
-      api.get(`/bot-model-integrations/bot/${bot.id}`).then(res => setIntegrations(res.data));
-      api.get('/models/').then(res => setModels(res.data));
-      setBotId(bot.id);
+    if (!botId) return;
+    api.get(`/bot-model-integrations/bot/${botId}`).then(res => {
+      if (Array.isArray(res)) setIntegrations(res);
+      else if (res && Array.isArray(res.data)) setIntegrations(res.data);
+      else setIntegrations([]);
     });
-  }, [botName]);
+    api.get('/models/').then(res => {
+      if (Array.isArray(res)) setModels(res);
+      else if (res && Array.isArray(res.data)) setModels(res.data);
+      else setModels([]);
+    });
+  }, [botId]);
 
   const handleAdd = async () => {
     if (!modelId || typeof modelId !== 'number' || isNaN(modelId) || !botId) {
@@ -50,7 +52,7 @@ export const BotModelIntegration = () => {
     setSaving(true);
     try {
       await api.post('/bot-model-integrations/', {
-        bot_id: botId,
+        bot_id: Number(botId),
         model_id: modelId,
         command
       });
@@ -71,6 +73,9 @@ export const BotModelIntegration = () => {
     setIntegrations(integrations.filter(i => i.id !== id));
   };
 
+  const safeIntegrations = Array.isArray(integrations) ? integrations : [];
+  const safeModels = Array.isArray(models) ? models : [];
+
   return (
     <Stack spacing={3}>
       <Stack direction="row" justifyContent="space-between" alignItems="center">
@@ -90,8 +95,8 @@ export const BotModelIntegration = () => {
               </TableRow>
             </TableHead>
             <TableBody>
-              {integrations.map((integration) => {
-                const model = models.find(m => m.id === integration.model_id);
+              {safeIntegrations.map((integration) => {
+                const model = safeModels.find(m => m.id === integration.model_id);
                 return (
                   <TableRow key={integration.id}>
                     <TableCell>{integration.command}</TableCell>
@@ -129,7 +134,7 @@ export const BotModelIntegration = () => {
               onChange={e => setModelId(Number(e.target.value))}
               fullWidth
             >
-              {models.map(model => (
+              {safeModels.map(model => (
                 <MenuItem key={model.id} value={model.id}>{model.name}</MenuItem>
               ))}
             </TextField>
@@ -142,7 +147,7 @@ export const BotModelIntegration = () => {
           </Button>
         </DialogActions>
       </Dialog>
-      <Button onClick={() => navigate(-1)}>Back</Button>
+      <Button onClick={() => window.history.back()}>Back</Button>
     </Stack>
   );
 };

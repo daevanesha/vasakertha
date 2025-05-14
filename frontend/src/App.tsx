@@ -19,7 +19,7 @@ function App() {
             <Route path="providers" element={<AIProviders />} />
             <Route path="models" element={<Models />} />
             <Route path="bots" element={<BotManager />} />
-            <Route path="bot-integrations/:botName" element={<BotModelIntegration />} />
+            <Route path="bot-integrations/:botId" element={<BotModelIntegration />} />
           </Route>
         </Routes>
       </Router>
