@@ -63,7 +63,10 @@ export const BotManager = () => {
     queryFn: async () => {
       try {
         const response = await api.get('/discord-bots/');
-        return response.data;
+        // Fix: handle both array and object with .data
+        if (Array.isArray(response)) return response;
+        if (response && Array.isArray(response.data)) return response.data;
+        return [];
       } catch (err: any) {
         console.error('Failed to fetch bots:', err);
         setError(err.message || 'Failed to load bots');

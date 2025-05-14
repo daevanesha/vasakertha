@@ -131,6 +131,20 @@ This file records the development journey, decisions, and changes made to the Da
 
 ---
 
+## [2025-05-14] v1.4 Checkpoint — Tag Removal, !models Card Update, and Error Fixes
+
+- Fully removed all tag functionality and UI from both frontend and backend (Dashboard, Models page, Discord bot, API, and schemas).
+- Updated the Discord bot's !models command card: removed status, added provider, model name, and temperature fields.
+- Changed the embed footer to: "Model provided by API*".
+- Fixed all TypeScript and compile errors in the frontend (api.ts, Models.tsx, etc.).
+- Created a git checkpoint and tagged as v1.4.
+
+**Next Steps:**
+- Continue refining model management and Discord integration features as needed.
+- Use this checkpoint as a stable baseline for future development.
+
+---
+
 ## Logging Instructions
 
 - For every significant change, bugfix, or lesson, add a new entry here.

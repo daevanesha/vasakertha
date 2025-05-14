@@ -5,11 +5,22 @@ import { api } from '../utils/api'
 export const Dashboard = () => {
   const { data: models = [], isLoading } = useQuery({
     queryKey: ['models'],
-    queryFn: () => api.get('/models/').then(res => res.data),
+    queryFn: async () => {
+      const res = await api.get('/models/');
+      // Fix: handle both array and object with .data
+      if (Array.isArray(res)) return res;
+      if (res && Array.isArray(res.data)) return res.data;
+      return [];
+    },
   })
   const { data: providers = [] } = useQuery({
     queryKey: ['providers'],
-    queryFn: () => api.get('/providers/').then(res => res.data),
+    queryFn: async () => {
+      const res = await api.get('/providers/');
+      if (Array.isArray(res)) return res;
+      if (res && Array.isArray(res.data)) return res.data;
+      return [];
+    },
   })
 
   // Calculate summary info
