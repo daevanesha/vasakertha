@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import {
   Stack,
   Button,
@@ -27,10 +27,11 @@ import {
   Tooltip
 } from '@mui/material'
 import { Add as AddIcon, Delete as DeleteIcon, Edit as EditIcon } from '@mui/icons-material'
-import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm, Controller } from 'react-hook-form'
 import { api } from '../utils/api'
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
+import React from 'react'
 
 // Type definitions
 interface Provider {
@@ -131,11 +132,23 @@ export const Models = () => {
   const [open, setOpen] = useState(false)
   const [editingModel, setEditingModel] = useState<Model | null>(null)
   const [saving, setSaving] = useState(false)
+  const [infoOpen, setInfoOpen] = useState(false);
+  const [infoModel, setInfoModel] = useState<Model | null>(null);
+  const [infoShortDesc, setInfoShortDesc] = useState('');
+  const [infoImage, setInfoImage] = useState<File | null>(null);
+  const [infoSaving, setInfoSaving] = useState(false);
+  const [infoError, setInfoError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Get providers
-  const { data: providers = [] } = useQuery<Provider[]>({
+  const { data: providers = [], isLoading: isLoadingProviders } = useQuery<Provider[]>({
     queryKey: ['providers'],
-    queryFn: () => api.get('/providers/').then(res => res.data)
+    queryFn: async () => {
+      const res = await api.get('/providers/');
+      if (Array.isArray(res)) return res;
+      if (res && Array.isArray(res.data)) return res.data;
+      return [];
+    }
   })
 
   const { control, handleSubmit, watch, reset } = useForm<ModelForm>()
@@ -165,7 +178,12 @@ export const Models = () => {
   // Get models
   const { data: models = [], isLoading } = useQuery<Model[]>({
     queryKey: ['models'],
-    queryFn: () => api.get('/models/').then(res => res.data)
+    queryFn: async () => {
+      const res = await api.get('/models/');
+      if (Array.isArray(res)) return res;
+      if (res && Array.isArray(res.data)) return res.data;
+      return [];
+    }
   })
 
   const resetForm = () => {
@@ -248,6 +266,57 @@ export const Models = () => {
     }
   }
 
+  // Open Manage Model Info dialog
+  const handleInfo = (model: Model) => {
+    setInfoModel(model);
+    setInfoShortDesc(model.short_description || '');
+    setInfoImage(null);
+    setInfoOpen(true);
+    setInfoError(null);
+  };
+
+  // Handle image file selection
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setInfoImage(e.target.files[0]);
+    }
+  };
+
+  // Save model info (short description and image)
+  const handleInfoSave = async () => {
+    if (!infoModel) return;
+    setInfoSaving(true);
+    setInfoError(null);
+    try {
+      // Update short description if changed
+      if (infoShortDesc !== infoModel.short_description) {
+        await api.put(`/models/${infoModel.id}`, {
+          short_description: infoShortDesc
+        });
+      }
+      // Upload image if selected
+      if (infoImage) {
+        const formData = new FormData();
+        formData.append('file', infoImage);
+        // Use fetch directly for multipart
+        await fetch(`/bot-model-integrations/model/${infoModel.id}/upload_image`, {
+          method: 'POST',
+          body: formData
+        });
+      }
+      // Refresh models
+      const res = await api.get('/models/');
+      if (Array.isArray(res)) queryClient.setQueryData(['models'], res);
+      else if (res && Array.isArray(res.data)) queryClient.setQueryData(['models'], res.data);
+      setInfoOpen(false);
+      setInfoModel(null);
+      setInfoImage(null);
+    } catch (err: any) {
+      setInfoError(err?.response?.data?.detail || 'Failed to update model info');
+    }
+    setInfoSaving(false);
+  };
+
   return (
     <Stack spacing={3}>
       <Stack
@@ -304,7 +373,7 @@ export const Models = () => {
                         <IconButton size="small" onClick={() => handleEdit(model)}>
                           <EditIcon fontSize="small" />
                         </IconButton>
-                        <IconButton size="small" color="primary" title="Manage Model Info">
+                        <IconButton size="small" color="primary" title="Manage Model Info" onClick={() => handleInfo(model)}>
                           <InfoOutlinedIcon fontSize="small" />
                         </IconButton>
                         <IconButton size="small" color="error" onClick={() => handleDelete(model.id)}>
@@ -569,6 +638,52 @@ export const Models = () => {
             </Button>
           </DialogActions>
         </form>
+      </Dialog>
+
+      {/* Manage Model Info Dialog */}
+      <Dialog open={infoOpen} onClose={() => setInfoOpen(false)} maxWidth="xs" fullWidth>
+        <DialogTitle>Manage Model Info</DialogTitle>
+        <DialogContent>
+          <Stack spacing={2} sx={{ mt: 1 }}>
+            <Typography variant="subtitle1">Model: {infoModel?.name}</Typography>
+            <TextField
+              label="Short Description"
+              value={infoShortDesc}
+              onChange={e => setInfoShortDesc(e.target.value)}
+              fullWidth
+              multiline
+              minRows={2}
+              placeholder="Short description for this model"
+            />
+            <Box>
+              <Typography variant="subtitle2" sx={{ mb: 1 }}>Model Image</Typography>
+              {infoModel?.image_url && (
+                <img
+                  src={infoModel.image_url.startsWith('http') ? infoModel.image_url : `${window.location.origin}${infoModel.image_url}`}
+                  alt="Model"
+                  style={{ width: 60, height: 60, objectFit: 'cover', borderRadius: 8, border: '1px solid #eee', background: '#fafafa', marginBottom: 8 }}
+                />
+              )}
+              <input
+                type="file"
+                accept="image/*"
+                style={{ display: 'none' }}
+                ref={fileInputRef}
+                onChange={handleImageChange}
+              />
+              <Button variant="outlined" onClick={() => fileInputRef.current?.click()} sx={{ mt: 1 }}>
+                {infoImage ? infoImage.name : 'Choose Image'}
+              </Button>
+            </Box>
+            {infoError && <FormHelperText error>{infoError}</FormHelperText>}
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setInfoOpen(false)} disabled={infoSaving}>Cancel</Button>
+          <Button onClick={handleInfoSave} variant="contained" disabled={infoSaving}>
+            {infoSaving ? 'Saving...' : 'Save'}
+          </Button>
+        </DialogActions>
       </Dialog>
     </Stack>
   )
