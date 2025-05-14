@@ -17,13 +17,21 @@ def create_model(model: schemas.AIModelCreate, db: Session = Depends(get_db)):
 @router.get("/", response_model=list[schemas.AIModel])
 def list_models(skip: int = 0, limit: int = 100, db: Session = Depends(get_db), request: Request = None):
     models_ = db.query(models.AIModel).offset(skip).limit(limit).all()
-    # Patch image_url to absolute
-    if request:
-        base_url = str(request.base_url).rstrip('/')
-        for m in models_:
-            if m.image_url and not m.image_url.startswith("http"):
-                m.image_url = f"{base_url}{m.image_url}"
-    return models_
+    # Patch image_url to absolute and add provider_name
+    result = []
+    for m in models_:
+        model_dict = m.__dict__.copy()
+        if hasattr(m, 'provider') and m.provider:
+            model_dict['provider_name'] = m.provider.name
+        else:
+            # Try to fetch provider if not loaded
+            provider = db.query(models.AIProvider).filter(models.AIProvider.id == m.provider_id).first()
+            model_dict['provider_name'] = provider.name if provider else 'Unknown'
+        if m.image_url and not m.image_url.startswith("http") and request:
+            base_url = str(request.base_url).rstrip('/')
+            model_dict['image_url'] = f"{base_url}{m.image_url}"
+        result.append(model_dict)
+    return result
 
 @router.get("/active", response_model=list[schemas.AIModel])
 def get_active_models(db: Session = Depends(get_db), request: Request = None):

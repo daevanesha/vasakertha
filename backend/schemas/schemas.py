@@ -31,39 +31,8 @@ class AIModelBase(BaseModel):
     configuration: str
     is_active: bool = True
     short_description: Optional[str] = ""
-    tags: Optional[List[str]] = []
     active: Optional[bool] = True
     image_url: Optional[str] = ""  # New: model image URL
-
-    @field_validator('tags', mode='before')
-    @classmethod
-    def parse_tags(cls, v: Any):
-        if v is None or v == '' or v == []:
-            return []
-        if isinstance(v, str):
-            import json
-            try:
-                parsed = json.loads(v)
-                if isinstance(parsed, list):
-                    return parsed
-                if isinstance(parsed, dict):
-                    # If dict, return keys if all values are True/False/None/empty, else values
-                    if all(val in (True, False, None, "") for val in parsed.values()):
-                        return list(parsed.keys())
-                    return list(parsed.values())
-                return []
-            except Exception:
-                return []
-        if isinstance(v, dict):
-            if not v:
-                return []
-            if all(val in (True, False, None, "") for val in v.values()):
-                return list(v.keys())
-            return list(v.values())
-        if isinstance(v, list):
-            return v
-        # Defensive fallback: wrap as list
-        return [str(v)]
 
 class AIModelCreate(AIModelBase):
     pass
@@ -75,7 +44,6 @@ class AIModelUpdate(AIModelBase):
     configuration: Optional[str] = None
     is_active: Optional[bool] = None
     short_description: Optional[str] = None
-    tags: Optional[List[str]] = None
     active: Optional[bool] = None
     image_url: Optional[str] = None  # New: model image URL
 

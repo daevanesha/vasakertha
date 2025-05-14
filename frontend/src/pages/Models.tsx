@@ -68,7 +68,6 @@ interface Model {
   created_at: string
   updated_at: string
   short_description?: string
-  tags?: string[] | string
   active?: boolean
   image_url?: string
 }
@@ -132,14 +131,6 @@ export const Models = () => {
   const [open, setOpen] = useState(false)
   const [editingModel, setEditingModel] = useState<Model | null>(null)
   const [saving, setSaving] = useState(false)
-  
-  // --- New: Model Info Modal State ---
-  const [infoOpen, setInfoOpen] = useState(false)
-  const [infoModel, setInfoModel] = useState<Model | null>(null)
-  const [infoSaving, setInfoSaving] = useState(false)
-  const [infoDesc, setInfoDesc] = useState('')
-  const [infoTags, setInfoTags] = useState<string[]>([])
-  const [infoActive, setInfoActive] = useState(true)
 
   // Get providers
   const { data: providers = [] } = useQuery<Provider[]>({
@@ -236,44 +227,11 @@ export const Models = () => {
     setOpen(true)
   }
 
-  // --- New: Open Info Modal ---
-  const handleManage = (model: Model) => {
-    setInfoModel(model)
-    setInfoDesc(model.short_description || '')
-    let tags: string[] = []
-    if (typeof model.tags === 'string') {
-      try { tags = JSON.parse(model.tags) } catch { tags = [] }
-    } else if (Array.isArray(model.tags)) {
-      tags = model.tags
-    }
-    setInfoTags(tags)
-    setInfoActive(model.active ?? true)
-    setInfoOpen(true)
-  }
-
   const handleDelete = async (id: number) => {
     if (window.confirm('Are you sure you want to delete this model?')) {
       await api.delete(`/models/${id}`)
       queryClient.invalidateQueries({ queryKey: ['models'] })
     }
-  }
-
-  // --- New: Save Model Info ---
-  const saveModelInfo = async () => {
-    if (!infoModel) return
-    setInfoSaving(true)
-    try {
-      await api.put(`/bot-model-integrations/model/${infoModel.id}`, {
-        short_description: infoDesc,
-        tags: infoTags,
-        active: infoActive
-      })
-      queryClient.invalidateQueries({ queryKey: ['models'] })
-      setInfoOpen(false)
-    } catch (e) {
-      alert('Failed to update model info')
-    }
-    setInfoSaving(false)
   }
 
   const onSubmit = async (data: ModelForm) => {
@@ -346,7 +304,7 @@ export const Models = () => {
                         <IconButton size="small" onClick={() => handleEdit(model)}>
                           <EditIcon fontSize="small" />
                         </IconButton>
-                        <IconButton size="small" color="primary" onClick={() => handleManage(model)} title="Manage Model Info">
+                        <IconButton size="small" color="primary" title="Manage Model Info">
                           <InfoOutlinedIcon fontSize="small" />
                         </IconButton>
                         <IconButton size="small" color="error" onClick={() => handleDelete(model.id)}>
@@ -611,104 +569,6 @@ export const Models = () => {
             </Button>
           </DialogActions>
         </form>
-      </Dialog>
-
-      <Dialog open={infoOpen} onClose={() => setInfoOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>Manage Model Info</DialogTitle>
-        <DialogContent>
-          <Stack spacing={2} sx={{ mt: 1 }}>
-            <TextField
-              label="Short Description"
-              value={infoDesc}
-              onChange={e => setInfoDesc(e.target.value.slice(0, 256))}
-              fullWidth
-              multiline
-              rows={2}
-              inputProps={{ maxLength: 256 }}
-              helperText={`${infoDesc.length}/256`}
-            />
-            <TextField
-              label="Tags (comma separated, max 5)"
-              value={infoTags.join(', ')}
-              onChange={e => {
-                // Allow comma input, split on commas not inside quotes, but allow direct comma typing
-                let raw = e.target.value
-                // Accept commas, but only split on unquoted commas
-                let tags = raw.split(/,(?=(?:[^"]*"[^"]*")*[^"]*$)/).map(t => t.trim().replace(/^"|"$/g, ''))
-                tags = tags.filter(Boolean)
-                if (tags.length > 5) tags = tags.slice(0, 5)
-                setInfoTags(tags)
-              }}
-              fullWidth
-              helperText={infoTags.length > 5 ? 'Maximum 5 tags allowed' : `${infoTags.length}/5`}
-              error={infoTags.length > 5}
-              inputProps={{ inputMode: 'text', pattern: '.*' }}
-            />
-            <Box>
-              {/* Model Image Upload/Display */}
-              {infoModel && (
-                <Box mb={1}>
-                  {infoModel.image_url ? (
-                    <img
-                      src={infoModel.image_url.startsWith('http') ? infoModel.image_url : `${window.location.origin}${infoModel.image_url}`}
-                      alt="Model"
-                      style={{ maxWidth: 120, maxHeight: 120, borderRadius: 8, border: '1px solid #eee', marginBottom: 8, background: '#fafafa' }}
-                      onError={e => { (e.target as HTMLImageElement).src = '/vite.svg' }}
-                    />
-                  ) : (
-                    <Box sx={{ width: 120, height: 120, borderRadius: 8, border: '1px solid #eee', background: '#fafafa', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#bbb', fontSize: 32, marginBottom: 1 }}>
-                      <span role="img" aria-label="No image">🖼️</span>
-                    </Box>
-                  )}
-                </Box>
-              )}
-              <input
-                type="file"
-                accept="image/*"
-                id="model-image-upload"
-                style={{ display: 'none' }}
-                onChange={async (e) => {
-                  if (!infoModel) return;
-                  const file = e.target.files?.[0];
-                  if (!file) return;
-                  const formData = new FormData();
-                  formData.append('file', file);
-                  try {
-                    const res = await api.post(`/bot-model-integrations/model/${infoModel.id}/upload_image`, formData, {
-                      headers: { 'Content-Type': 'multipart/form-data' }
-                    });
-                    // Update image_url in infoModel and refetch models
-                    setInfoModel({ ...infoModel, image_url: res.data.image_url });
-                    queryClient.invalidateQueries({ queryKey: ['models'] });
-                  } catch (err) {
-                    alert('Failed to upload image');
-                  }
-                }}
-              />
-              <label htmlFor="model-image-upload">
-                <Button variant="outlined" component="span" size="small">
-                  {infoModel && infoModel.image_url ? 'Change Image' : 'Upload Image'}
-                </Button>
-              </label>
-            </Box>
-            <Box>
-              <Button
-                variant={infoActive ? 'contained' : 'outlined'}
-                color={infoActive ? 'success' : 'inherit'}
-                onClick={() => setInfoActive(a => !a)}
-                sx={{ minWidth: 100, fontWeight: 600, borderRadius: 2, boxShadow: infoActive ? 1 : 0 }}
-              >
-                {infoActive ? 'ACTIVE' : 'INACTIVE'}
-              </Button>
-            </Box>
-          </Stack>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setInfoOpen(false)} disabled={infoSaving}>Cancel</Button>
-          <Button onClick={saveModelInfo} variant="contained" disabled={infoSaving || infoTags.length > 5}>
-            {infoSaving ? 'Saving...' : 'Save'}
-          </Button>
-        </DialogActions>
       </Dialog>
     </Stack>
   )

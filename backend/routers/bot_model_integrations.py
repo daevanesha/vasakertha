@@ -302,10 +302,8 @@ def update_model_info(model_id: int, model_update: schemas.AIModelUpdate, db: Se
     if not model:
         raise HTTPException(status_code=404, detail="Model not found")
     for key, value in model_update.dict(exclude_unset=True).items():
-        if key == "tags" and value is not None:
-            # Validate max 5 tags
-            if isinstance(value, list) and len(value) > 5:
-                raise HTTPException(status_code=400, detail="Maximum 5 tags allowed.")
+        if key == "tags":
+            continue
         setattr(model, key, value)
     db.commit()
     db.refresh(model)

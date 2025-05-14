@@ -142,33 +142,40 @@ class DaeBotManager:
                     command = integration.command
                     model_name = getattr(model, 'name', 'Unknown')
                     short_desc = getattr(model, 'short_description', None) or getattr(model, 'description', None) or 'No description.'
-                    tags = getattr(model, 'tags', None) or []
-                    if isinstance(tags, str):
-                        try:
-                            tags = json.loads(tags)
-                        except Exception:
-                            tags = [tags]
+                    # --- New fields ---
+                    provider = session.query(db_models.AIProvider).filter(db_models.AIProvider.id == model.provider_id).first()
+                    provider_name = getattr(provider, 'name', 'Unknown') if provider else 'Unknown'
+                    model_id_display = getattr(model, 'model_id', 'Unknown')
+                    # Parse temperature from configuration JSON
+                    try:
+                        config_json = json.loads(getattr(model, 'configuration', '{}') or '{}')
+                        temperature = config_json.get('temperature', None)
+                    except Exception:
+                        temperature = None
+                    # Only show active models
                     is_active = getattr(model, 'active', None)
                     if is_active is None:
                         is_active = getattr(model, 'is_active', True)
-                    status = ':green_circle: Active' if is_active else ':red_circle: Inactive'
                     if not is_active:
                         continue
-                    if not isinstance(tags, list):
-                        tags = []
-                    tags_str = ', '.join([f'`{t}`' for t in tags[:5]]) if tags else 'None'
-                    value = f"**Command:** `{command}`\n**Status:** {status}\n**Tags:** {tags_str}\n{short_desc}"
+                    # Build embed fields
+                    value = f"**Command:** `{command}`\n**Provider:** {provider_name}\n**Model:** {model_id_display}"
+                    if temperature is not None:
+                        value += f"\n**Temperature:** {temperature}"
+                    value += f"\n{short_desc}"
                     embed = discord.Embed(title=model_name, description=short_desc, color=0x00BFFF)
                     embed.add_field(name="Command", value=f"`{command}`", inline=True)
-                    embed.add_field(name="Status", value=status, inline=True)
-                    embed.add_field(name="Tags", value=tags_str, inline=False)
+                    embed.add_field(name="Provider", value=provider_name, inline=True)
+                    embed.add_field(name="Model", value=model_id_display, inline=True)
+                    if temperature is not None:
+                        embed.add_field(name="Temperature", value=str(temperature), inline=True)
                     # Set model image as thumbnail if available and valid
                     if image_url and (image_url.startswith("http://") or image_url.startswith("https://")):
                         embed.set_thumbnail(url=image_url)
                         logger.info(f"Set Discord embed thumbnail for model {model_name}: {image_url}")
                     else:
                         logger.warning(f"No valid image_url for model {model_name}: {image_url}")
-                    embed.set_footer(text="Only active models are available for use.")
+                    embed.set_footer(text="Model provided by API*")
                     await ctx.send(embed=embed)
                     sent = True
                 if not sent:
