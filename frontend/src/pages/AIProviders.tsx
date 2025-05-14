@@ -40,6 +40,7 @@ type ProviderForm = {
 
 const PROVIDER_PRESETS = [
   { name: 'OpenAI', doc: 'https://platform.openai.com/docs/overview' },
+  { name: 'OpenRouter', doc: 'https://openrouter.ai/docs/api-reference/overview' },
   { name: 'Anthropic', doc: 'https://docs.anthropic.com/en/api/getting-started' },
   { name: 'DeepSeek', doc: 'https://api-docs.deepseek.com' },
   { name: 'Gemini', doc: 'https://ai.google.dev/gemini-api/docs' },
@@ -209,6 +210,12 @@ export const AIProviders = () => {
                 type="password"
                 {...register('api_key', { required: true })}
               />
+              {editForm.name === 'OpenRouter' ? (
+                <Typography variant="caption" color="text.secondary" sx={{ mt: 1 }}>
+                  OpenRouter API keys start with <b>sk-or-</b>.<br />
+                  Docs: <a href="https://openrouter.ai/docs/api-reference/overview" target="_blank" rel="noopener noreferrer">OpenRouter API Reference</a>
+                </Typography>
+              ) : null}
             </Stack>
             <Typography variant="caption" color="text.secondary" sx={{ mt: 1 }}>
               Supported: OpenAI, Anthropic, DeepSeek, Gemini, Mistral
@@ -262,6 +269,12 @@ export const AIProviders = () => {
                   )
                 }}
               />
+              {editForm.name === 'OpenRouter' ? (
+                <Typography variant="caption" color="text.secondary" sx={{ mt: 1 }}>
+                  OpenRouter API keys start with <b>sk-or-</b>.<br />
+                  Docs: <a href="https://openrouter.ai/docs/api-reference/overview" target="_blank" rel="noopener noreferrer">OpenRouter API Reference</a>
+                </Typography>
+              ) : null}
             </Stack>
           </DialogContent>
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, padding: 16 }}>

@@ -10,6 +10,9 @@ const theme = createTheme({
       default: '#f5f5f5',
     },
   },
+  typography: {
+    fontFamily: 'Montserrat, Poppins, Nunito, Quicksand, Futura, Avenir, Arial, sans-serif',
+  },
 })
 
 export default theme

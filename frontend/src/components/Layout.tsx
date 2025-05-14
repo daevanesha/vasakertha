@@ -16,7 +16,6 @@ import {
 import {
   Menu as MenuIcon,  Dashboard as DashboardIcon,
   SmartToy as SmartToyIcon,
-  Psychology as PsychologyIcon,
   SmartButton as BotIcon
 } from '@mui/icons-material'
 import Collapse from '@mui/material/Collapse';

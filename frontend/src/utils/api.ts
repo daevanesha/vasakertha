@@ -33,4 +33,8 @@ export const api = {
     body: JSON.stringify(data),
   }).then(handleResponse),
   delete: (url: string) => fetch(`${API_BASE_URL}${url}`, { method: 'DELETE' }).then(handleResponse),
+  upload: (url: string, formData: FormData) => fetch(`${API_BASE_URL}${url}`, {
+    method: 'POST',
+    body: formData,
+  }).then(handleResponse),
 };

@@ -114,7 +114,7 @@ export const BotManager = () => {
 
   // Restart bot with improved error handling
   const restartBot = useMutation({
-    mutationFn: (id: number) => api.post(`/discord-bots/${id}/restart`),
+    mutationFn: (id: number) => api.post(`/discord-bots/${id}/restart`, {}),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['discord-bots'] });
       setError(null);
@@ -128,7 +128,7 @@ export const BotManager = () => {
 
   // Add stopBot mutation
   const stopBot = useMutation({
-    mutationFn: (id: number) => api.post(`/discord-bots/${id}/stop`),
+    mutationFn: (id: number) => api.post(`/discord-bots/${id}/stop`, {}),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['discord-bots'] });
       setError(null);

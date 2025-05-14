@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Stack,
   Button,
@@ -24,14 +24,15 @@ import {
   InputLabel,
   Select,
   FormHelperText,
-  Tooltip
+  Tooltip,
+  CircularProgress,
+  ListSubheader
 } from '@mui/material'
 import { Add as AddIcon, Delete as DeleteIcon, Edit as EditIcon } from '@mui/icons-material'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm, Controller } from 'react-hook-form'
 import { api } from '../utils/api'
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
-import React from 'react'
 
 // Type definitions
 interface Provider {
@@ -51,7 +52,7 @@ interface ModelDetails {
   capabilities?: string[]
 }
 
-type ProviderType = 'openai' | 'anthropic' | 'deepseek' | 'mistral' | 'gemini'
+type ProviderType = 'openai' | 'anthropic' | 'deepseek' | 'mistral' | 'gemini' | 'openrouter'
 
 interface ModelConfiguration {
   temperature: number
@@ -107,7 +108,49 @@ const providerModels: Record<ProviderType, ModelDetails[]> = {
     { id: 'gemini-1.5-pro-latest', name: 'Gemini 1.5 Pro', description: 'Google’s most capable Gemini model.', contextWindow: 1048576, capabilities: ['Multimodal', 'Large context', 'Advanced reasoning'] },
     { id: 'gemini-1.0-pro', name: 'Gemini 1.0 Pro', description: 'General-purpose Gemini model.', contextWindow: 32768, capabilities: ['Text, image, code', 'General tasks'] },
     { id: 'gemini-1.0-pro-vision', name: 'Gemini 1.0 Pro Vision', description: 'Vision-capable Gemini model.', contextWindow: 32768, capabilities: ['Image input', 'Text+image tasks'] }
-  ]
+  ],
+  openrouter: []
+}
+
+// Helper to detect OpenRouter provider
+function isOpenRouterProvider(provider: Provider) {
+  return provider.name.toLowerCase().includes('openrouter');
+}
+
+// Fetch OpenRouter models (cache in state)
+function useOpenRouterModels(apiKey: string | undefined) {
+  const [models, setModels] = useState<ModelDetails[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!apiKey) return;
+    setLoading(true);
+    setError(null);
+    fetch('https://openrouter.ai/api/v1/models', {
+      headers: { Authorization: `Bearer ${apiKey}` }
+    })
+      .then(async (res) => {
+        if (!res.ok) throw new Error('Failed to fetch OpenRouter models');
+        const data = await res.json();
+        // Normalize to ModelDetails[]
+        const models: ModelDetails[] = (data.data || data.models || []).map((m: any) => ({
+          id: m.id,
+          name: m.name || m.id,
+          description: m.description,
+          contextWindow: m.context_length,
+          capabilities: m.capabilities || [],
+        }));
+        setModels(models);
+        setLoading(false);
+      })
+      .catch((e) => {
+        setError(e.message);
+        setLoading(false);
+      });
+  }, [apiKey]);
+
+  return { models, loading, error };
 }
 
 // Helper functions to determine provider type and available models
@@ -115,6 +158,7 @@ function getProviderType(providerId: number, providers: Provider[]): ProviderTyp
   const provider = providers.find(p => p.id === providerId)
   if (!provider) return ''
   const name = provider.name.toLowerCase()
+  if (name.includes('openrouter')) return 'openrouter';
   if (name.includes('claude') || name.includes('anthropic')) return 'anthropic'
   if (name.includes('deepseek')) return 'deepseek'
   if (name.includes('mistral')) return 'mistral'
@@ -123,8 +167,9 @@ function getProviderType(providerId: number, providers: Provider[]): ProviderTyp
   return ''
 }
 
-function getAvailableModels(providerId: number, providers: Provider[]): ModelDetails[] {
+function getAvailableModels(providerId: number, providers: Provider[], openRouterModels: ModelDetails[]): ModelDetails[] {
   const providerType = getProviderType(providerId, providers)
+  if (providerType === 'openrouter') return openRouterModels;
   return providerType ? providerModels[providerType] : []
 }
 
@@ -135,13 +180,10 @@ export const Models = () => {
   const [infoOpen, setInfoOpen] = useState(false);
   const [infoModel, setInfoModel] = useState<Model | null>(null);
   const [infoShortDesc, setInfoShortDesc] = useState('');
-  const [infoImage, setInfoImage] = useState<File | null>(null);
-  const [infoSaving, setInfoSaving] = useState(false);
-  const [infoError, setInfoError] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [modelSearch, setModelSearch] = useState('');
 
   // Get providers
-  const { data: providers = [], isLoading: isLoadingProviders } = useQuery<Provider[]>({
+  const { data: providers = [] } = useQuery<Provider[]>({
     queryKey: ['providers'],
     queryFn: async () => {
       const res = await api.get('/providers/');
@@ -153,6 +195,10 @@ export const Models = () => {
 
   const { control, handleSubmit, watch, reset } = useForm<ModelForm>()
   const selectedProvider = watch('provider_id')
+  const selectedProviderObj = providers.find(p => p.id === selectedProvider)
+  const isOpenRouter = selectedProviderObj && isOpenRouterProvider(selectedProviderObj)
+  const openRouterApiKey = isOpenRouter ? selectedProviderObj?.api_key : undefined
+  const { models: openRouterModels, loading: openRouterLoading, error: openRouterError } = useOpenRouterModels(openRouterApiKey)
 
   // Set initial values
   useEffect(() => {
@@ -270,51 +316,7 @@ export const Models = () => {
   const handleInfo = (model: Model) => {
     setInfoModel(model);
     setInfoShortDesc(model.short_description || '');
-    setInfoImage(null);
     setInfoOpen(true);
-    setInfoError(null);
-  };
-
-  // Handle image file selection
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setInfoImage(e.target.files[0]);
-    }
-  };
-
-  // Save model info (short description and image)
-  const handleInfoSave = async () => {
-    if (!infoModel) return;
-    setInfoSaving(true);
-    setInfoError(null);
-    try {
-      // Update short description if changed
-      if (infoShortDesc !== infoModel.short_description) {
-        await api.put(`/models/${infoModel.id}`, {
-          short_description: infoShortDesc
-        });
-      }
-      // Upload image if selected
-      if (infoImage) {
-        const formData = new FormData();
-        formData.append('file', infoImage);
-        // Use fetch directly for multipart
-        await fetch(`/bot-model-integrations/model/${infoModel.id}/upload_image`, {
-          method: 'POST',
-          body: formData
-        });
-      }
-      // Refresh models
-      const res = await api.get('/models/');
-      if (Array.isArray(res)) queryClient.setQueryData(['models'], res);
-      else if (res && Array.isArray(res.data)) queryClient.setQueryData(['models'], res.data);
-      setInfoOpen(false);
-      setInfoModel(null);
-      setInfoImage(null);
-    } catch (err: any) {
-      setInfoError(err?.response?.data?.detail || 'Failed to update model info');
-    }
-    setInfoSaving(false);
   };
 
   return (
@@ -366,7 +368,6 @@ export const Models = () => {
               <TableBody>
                 {models.map((model) => {
                   const config = JSON.parse(model.configuration)
-                  const modelDetails = getAvailableModels(model.provider_id, providers).find(m => m.id === model.model_id)
                   return (
                     <TableRow key={model.id}>
                       <TableCell>
@@ -403,10 +404,19 @@ export const Models = () => {
                         )}
                       </TableCell>
                       <TableCell>{model.name}</TableCell>
-                      <TableCell>{providers.find(p => p.id === model.provider_id)?.name || 'Unknown'}</TableCell>
+                      <TableCell>
+                        {(() => {
+                          const providerType = getProviderType(model.provider_id, providers);
+                          const providerName = providers.find(p => p.id === model.provider_id)?.name || 'Unknown';
+                          if (providerType === 'openrouter') {
+                            return <Chip label="OpenRouter" size="small" color="primary" />;
+                          }
+                          return <Chip label={providerName} size="small" color="default" />;
+                        })()}
+                      </TableCell>
                       <TableCell>
                         <Typography variant="caption" display="block">
-                          Model: {modelDetails?.name || model.model_id}
+                          Model: {model.model_id}
                         </Typography>
                         <Typography variant="caption" display="block">
                           Temperature: {config.temperature}
@@ -514,26 +524,94 @@ export const Models = () => {
                 name="model_id"
                 control={control}
                 rules={{ required: 'Model is required' }}
-                render={({ field, fieldState: { error } }) => (
-                  <FormControl fullWidth disabled={!selectedProvider} error={!!error}>
-                    <InputLabel>Model</InputLabel>
-                    <Select {...field} label="Model">
-                      {selectedProvider && getAvailableModels(selectedProvider, providers).map((model: ModelDetails) => (
-                        <MenuItem key={model.id} value={model.id}>
-                          <Box>
-                            <Typography fontWeight="bold">{model.name}</Typography>
-                            {model.description && <Typography variant="caption">{model.description}</Typography>}
-                            {model.contextWindow && <Typography variant="caption">Context: {model.contextWindow.toLocaleString()} tokens</Typography>}
-                            {model.capabilities && model.capabilities.length > 0 && (
-                              <Typography variant="caption">Capabilities: {model.capabilities.join(', ')}</Typography>
-                            )}
-                          </Box>
-                        </MenuItem>
-                      ))}
-                    </Select>
-                    {error && <FormHelperText>{error.message}</FormHelperText>}
-                  </FormControl>
-                )}
+                render={({ field, fieldState: { error } }) => {
+                  const availableModels = selectedProvider ? getAvailableModels(selectedProvider, providers, openRouterModels) : [];
+                  const search = modelSearch.trim().toLowerCase();
+                  const filteredModels = isOpenRouter && search
+                    ? availableModels.filter((model: ModelDetails) =>
+                        (model.name && model.name.toLowerCase().includes(search)) ||
+                        (model.id && model.id.toLowerCase().includes(search)) ||
+                        (model.description && model.description.toLowerCase().includes(search))
+                      )
+                    : availableModels;
+                  return (
+                    <FormControl fullWidth disabled={!selectedProvider} error={!!error}>
+                      <InputLabel>Model</InputLabel>
+                      {isOpenRouter && openRouterLoading ? (
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, p: 2 }}>
+                          <CircularProgress size={18} />
+                          <Typography variant="caption">Loading OpenRouter models...</Typography>
+                        </Box>
+                      ) : (
+                        <Select
+                          {...field}
+                          label="Model"
+                          MenuProps={{
+                            PaperProps: {
+                              style: { maxHeight: 400, minWidth: 350, maxWidth: 800, width: 'auto' },
+                            },
+                            disableEnforceFocus: true,
+                          }}
+                          renderValue={selected => {
+                            const m = availableModels.find(m => m.id === selected);
+                            return m ? m.name : selected;
+                          }}
+                        >
+                          {isOpenRouter && (
+                            <ListSubheader
+                              id="openrouter-model-search"
+                              disableSticky={false}
+                              sx={{
+                                bgcolor: 'background.paper',
+                                px: 2,
+                                pt: 1,
+                                pb: 1,
+                                position: 'sticky',
+                                top: 0,
+                                zIndex: 2,
+                                borderBottom: '1px solid #eee',
+                              }}
+                            >
+                              <TextField
+                                size="small"
+                                fullWidth
+                                placeholder="Search models..."
+                                value={modelSearch}
+                                onChange={e => {
+                                  e.stopPropagation();
+                                  setModelSearch(e.target.value);
+                                }}
+                                inputProps={{ style: { background: 'inherit' }, tabIndex: 0 }}
+                                autoFocus={isOpenRouter}
+                              />
+                            </ListSubheader>
+                          )}
+                          {filteredModels.length === 0 ? (
+                            <MenuItem disabled>No models found</MenuItem>
+                          ) : (
+                            filteredModels.map((model: ModelDetails) => (
+                              <MenuItem key={model.id} value={model.id}>
+                                <Box>
+                                  <Typography fontWeight="bold">{model.name}</Typography>
+                                  {model.description && <Typography variant="caption">{model.description}</Typography>}
+                                  {model.contextWindow && <Typography variant="caption">Context: {model.contextWindow.toLocaleString()} tokens</Typography>}
+                                  {model.capabilities && model.capabilities.length > 0 && (
+                                    <Typography variant="caption">Capabilities: {model.capabilities.join(', ')}</Typography>
+                                  )}
+                                  {isOpenRouter && <Chip label="OpenRouter" size="small" color="primary" sx={{ ml: 1 }} />}
+                                </Box>
+                              </MenuItem>
+                            ))
+                          )}
+                        </Select>
+                      )}
+                      {error && <FormHelperText>{error.message}</FormHelperText>}
+                      {isOpenRouter && openRouterError && (
+                        <FormHelperText error>{openRouterError}</FormHelperText>
+                      )}
+                    </FormControl>
+                  );
+                }}
               />
 
               <Controller
@@ -664,25 +742,11 @@ export const Models = () => {
                   style={{ width: 60, height: 60, objectFit: 'cover', borderRadius: 8, border: '1px solid #eee', background: '#fafafa', marginBottom: 8 }}
                 />
               )}
-              <input
-                type="file"
-                accept="image/*"
-                style={{ display: 'none' }}
-                ref={fileInputRef}
-                onChange={handleImageChange}
-              />
-              <Button variant="outlined" onClick={() => fileInputRef.current?.click()} sx={{ mt: 1 }}>
-                {infoImage ? infoImage.name : 'Choose Image'}
-              </Button>
             </Box>
-            {infoError && <FormHelperText error>{infoError}</FormHelperText>}
           </Stack>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setInfoOpen(false)} disabled={infoSaving}>Cancel</Button>
-          <Button onClick={handleInfoSave} variant="contained" disabled={infoSaving}>
-            {infoSaving ? 'Saving...' : 'Save'}
-          </Button>
+          <Button onClick={() => setInfoOpen(false)}>Cancel</Button>
         </DialogActions>
       </Dialog>
     </Stack>
