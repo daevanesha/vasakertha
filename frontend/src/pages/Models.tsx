@@ -356,7 +356,7 @@ export const Models = () => {
             <Table>
               <TableHead>
                 <TableRow>
-                  <TableCell>Action</TableCell>
+                  <TableCell>Manage</TableCell>
                   <TableCell>Status</TableCell>
                   <TableCell>Image</TableCell>
                   <TableCell>Name</TableCell>

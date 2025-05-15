@@ -40,6 +40,9 @@ type DiscordBot = {
   is_active: boolean;
   created_at: string;
   updated_at: string;
+  guild_id?: string;
+  guild_name?: string;
+  guilds?: { id: string; name: string }[]; // Add this line for multiple guilds
 };
 
 type BotForm = {
@@ -242,7 +245,7 @@ export const BotManager = () => {
                   <TableCell>Manage</TableCell>
                   <TableCell>Status</TableCell>
                   <TableCell>Name</TableCell>
-                  <TableCell>Created</TableCell>
+                  <TableCell>Server</TableCell>
                   <TableCell align="right">Action</TableCell>
                 </TableRow>
               </TableHead>
@@ -285,12 +288,24 @@ export const BotManager = () => {
                         label={bot.is_active ? 'Active' : 'Inactive'}
                         color={bot.is_active ? 'success' : 'default'}
                         size="small"
+                        sx={{ pl: 0.5, pr: 0.5, fontWeight: 600, fontSize: '0.7rem', height: 20, minHeight: 20 }}
                       />
                     </TableCell>
                     {/* Name column */}
                     <TableCell>{bot.name}</TableCell>
-                    {/* Created column */}
-                    <TableCell>{new Date(bot.created_at).toLocaleDateString()}</TableCell>
+                    {/* Server column */}
+                    <TableCell>
+                      {Array.isArray(bot.guilds) && bot.guilds.length > 0
+                        ? bot.guilds.map((g: any, i: number) => (
+                            <Chip
+                              key={g.id || i}
+                              label={g.name || g.id}
+                              size="small"
+                              sx={{ mr: 0.5, mb: 0.5 }}
+                            />
+                          ))
+                        : '-'}
+                    </TableCell>
                     {/* Action column: Start, Restart, Stop */}
                     <TableCell align="right">
                       {/* Start: only if inactive, Play icon */}

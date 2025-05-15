@@ -32,10 +32,20 @@ async def create_bot(bot: DiscordBotCreate, db: Session = Depends(get_db)):
     return db_bot
 
 @router.get("/", response_model=list[DiscordBotSchema])
-def get_bots(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+async def get_bots(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     bots = db.query(DiscordBot).offset(skip).limit(limit).all()
     for bot in bots:
         bot.is_active = bot_runner.get_bot_status(bot.id)
+        # Fetch guilds from the running bot instance if available
+        running_bot = bot_runner.manager.get_bot(bot.id)
+        guilds = []
+        if running_bot is not None and hasattr(running_bot, 'guilds'):
+            try:
+                # guilds is a list of discord.Guild objects
+                guilds = [{"id": str(guild.id), "name": guild.name} for guild in getattr(running_bot, 'guilds', [])]
+            except Exception as e:
+                guilds = []
+        bot.guilds = guilds
     db.commit()
     return bots
 

@@ -89,9 +89,9 @@ export const BotModelIntegration = () => {
           <Table>
             <TableHead>
               <TableRow>
+                <TableCell>Manage</TableCell>
                 <TableCell>Command</TableCell>
                 <TableCell>Model</TableCell>
-                <TableCell>Manage</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -99,13 +99,13 @@ export const BotModelIntegration = () => {
                 const model = safeModels.find(m => m.id === integration.model_id);
                 return (
                   <TableRow key={integration.id}>
-                    <TableCell>{integration.command}</TableCell>
-                    <TableCell>{model?.name || integration.model_id}</TableCell>
                     <TableCell>
                       <IconButton color="error" onClick={() => handleDelete(integration.id)}>
                         <DeleteIcon />
                       </IconButton>
                     </TableCell>
+                    <TableCell>{integration.command}</TableCell>
+                    <TableCell>{model?.name || integration.model_id}</TableCell>
                   </TableRow>
                 );
               })}

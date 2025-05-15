@@ -18,3 +18,12 @@ def create_provider(provider: schemas.AIProviderCreate, db: Session = Depends(ge
 def get_providers(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     providers = db.query(models.AIProvider).offset(skip).limit(limit).all()
     return providers
+
+@router.delete("/{provider_id}")
+def delete_provider(provider_id: int, db: Session = Depends(get_db)):
+    provider = db.query(models.AIProvider).filter(models.AIProvider.id == provider_id).first()
+    if not provider:
+        raise HTTPException(status_code=404, detail="Provider not found")
+    db.delete(provider)
+    db.commit()
+    return {"message": "Provider deleted successfully"}
