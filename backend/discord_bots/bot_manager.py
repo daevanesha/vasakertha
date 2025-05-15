@@ -18,8 +18,11 @@ logger = logging.getLogger(__name__)
 class DaeBotManager:
     def __init__(self):
         self.bots: Dict[int, commands.Bot] = {}
-        # Per-user memory: user_id -> deque of last 10 (role, content) tuples
+        # Per-user, per-channel memory: (channel_id, user_id) -> deque of last 10 (role, content) tuples
         self.user_message_memory = collections.defaultdict(lambda: collections.deque(maxlen=10))
+
+    def get_memory_key(self, channel_id, user_id):
+        return f"{channel_id}:{user_id}"
 
     def setup_bot(self, bot: commands.Bot, name: str) -> None:
         @bot.event
@@ -32,7 +35,9 @@ class DaeBotManager:
         async def on_message(message):
             if message.author == bot.user:
                 return
-            # Only store command user messages as ("user", content)
+            # Only store command user messages as ("user", content) with channel context
+            key = self.get_memory_key(message.channel.id, message.author.id)
+            self.user_message_memory[key].append(("user", message.content))
             await bot.process_commands(message)
 
         @bot.event
@@ -59,6 +64,7 @@ class DaeBotManager:
             general_commands = [
                 ("!status", "Show this status card"),
                 ("!devinfo", "Show development info card"),
+                ("!models", "Show each available model and its parameters"),
             ]
             embed.add_field(
                 name="General Commands",
@@ -217,14 +223,16 @@ class DaeBotManager:
                             except Exception:
                                 persona = None
                             user_id = ctx.author.id
+                            channel_id = ctx.channel.id
                             # --- Get persona/model name for this command ---
                             persona_name = (getattr(_model, 'name', None) or getattr(_model, 'model_id', None) or 'assistant').lower()
                             # --- Build context: persona, then memory (filtered), then current prompt ---
                             context_messages = []
                             if persona:
                                 context_messages.append({"role": "system", "content": persona})
-                            # Only include memory for this persona/model and user
-                            for role, content in self.user_message_memory.get(user_id, []):
+                            # Only include memory for this persona/model, user, and channel
+                            key = self.get_memory_key(channel_id, user_id)
+                            for role, content in self.user_message_memory.get(key, []):
                                 if role == "user":
                                     context_messages.append({"role": "user", "content": content})
                                 elif role == persona_name:
@@ -245,8 +253,8 @@ class DaeBotManager:
                                 for chunk in split_message_chunks(reply):
                                     await ctx.send(chunk)
                                 # Store both user prompt and bot reply in memory as ("user", prompt), (persona_name, reply)
-                                self.user_message_memory[user_id].append(("user", prompt))
-                                self.user_message_memory[user_id].append((persona_name, reply))
+                                self.user_message_memory[key].append(("user", prompt))
+                                self.user_message_memory[key].append((persona_name, reply))
                             # --- Anthropic ---
                             elif _provider and _provider.name.lower() == 'anthropic':
                                 import requests
@@ -261,7 +269,7 @@ class DaeBotManager:
                                 if persona:
                                     messages.append({"role": "system", "content": persona})
                                 # Only include memory for this persona/model and user
-                                for role, content in self.user_message_memory.get(user_id, []):
+                                for role, content in self.user_message_memory.get(key, []):
                                     if role == "user":
                                         messages.append({"role": "user", "content": content})
                                     elif role == persona_name:
@@ -278,8 +286,8 @@ class DaeBotManager:
                                     reply = resp.json().get('content', [{}])[0].get('text', 'No response')
                                     for chunk in split_message_chunks(reply):
                                         await ctx.send(chunk)
-                                    self.user_message_memory[user_id].append(("user", prompt))
-                                    self.user_message_memory[user_id].append((persona_name, reply))
+                                    self.user_message_memory[key].append(("user", prompt))
+                                    self.user_message_memory[key].append((persona_name, reply))
                                 else:
                                     await ctx.send(f"Anthropic API error: {resp.status_code} {resp.text}")
                             # --- Gemini ---
@@ -292,7 +300,7 @@ class DaeBotManager:
                                 if persona:
                                     parts.append({"text": persona})
                                 # Only include memory for this persona/model and user
-                                for role, content in self.user_message_memory.get(user_id, []):
+                                for role, content in self.user_message_memory.get(key, []):
                                     if role == "user":
                                         parts.append({"text": content})
                                     elif role == persona_name:
@@ -307,8 +315,8 @@ class DaeBotManager:
                                     reply = candidates[0]['content']['parts'][0]['text'] if candidates and 'content' in candidates[0] and 'parts' in candidates[0]['content'] and candidates[0]['content']['parts'] else 'No response'
                                     for chunk in split_message_chunks(reply):
                                         await ctx.send(chunk)
-                                    self.user_message_memory[user_id].append(("user", prompt))
-                                    self.user_message_memory[user_id].append((persona_name, reply))
+                                    self.user_message_memory[key].append(("user", prompt))
+                                    self.user_message_memory[key].append((persona_name, reply))
                                 else:
                                     await ctx.send(f"Gemini API error: {resp.status_code} {resp.text}")
                             # --- DeepSeek ---
@@ -323,7 +331,7 @@ class DaeBotManager:
                                 messages = []
                                 if persona:
                                     messages.append({"role": "system", "content": persona})
-                                for role, content in self.user_message_memory.get(user_id, []):
+                                for role, content in self.user_message_memory.get(key, []):
                                     if role == "user":
                                         messages.append({"role": "user", "content": content})
                                     elif role == persona_name:
@@ -340,8 +348,8 @@ class DaeBotManager:
                                     reply = resp.json().get('choices', [{}])[0].get('message', {}).get('content', 'No response')
                                     for chunk in split_message_chunks(reply):
                                         await ctx.send(chunk)
-                                    self.user_message_memory[user_id].append(("user", prompt))
-                                    self.user_message_memory[user_id].append((persona_name, reply))
+                                    self.user_message_memory[key].append(("user", prompt))
+                                    self.user_message_memory[key].append((persona_name, reply))
                                 else:
                                     await ctx.send(f"DeepSeek API error: {resp.status_code} {resp.text}")
                             # --- Mistral ---
@@ -356,7 +364,7 @@ class DaeBotManager:
                                 messages = []
                                 if persona:
                                     messages.append({"role": "system", "content": persona})
-                                for role, content in self.user_message_memory.get(user_id, []):
+                                for role, content in self.user_message_memory.get(key, []):
                                     if role == "user":
                                         messages.append({"role": "user", "content": content})
                                     elif role == persona_name:
@@ -373,8 +381,8 @@ class DaeBotManager:
                                     reply = resp.json().get('choices', [{}])[0].get('message', {}).get('content', 'No response')
                                     for chunk in split_message_chunks(reply):
                                         await ctx.send(chunk)
-                                    self.user_message_memory[user_id].append(("user", prompt))
-                                    self.user_message_memory[user_id].append((persona_name, reply))
+                                    self.user_message_memory[key].append(("user", prompt))
+                                    self.user_message_memory[key].append((persona_name, reply))
                                 else:
                                     await ctx.send(f"Mistral API error: {resp.status_code} {resp.text}")
                             # --- OpenRouter ---
@@ -389,7 +397,7 @@ class DaeBotManager:
                                 messages = []
                                 if persona:
                                     messages.append({"role": "system", "content": persona})
-                                for role, content in self.user_message_memory.get(user_id, []):
+                                for role, content in self.user_message_memory.get(key, []):
                                     if role == "user":
                                         messages.append({"role": "user", "content": content})
                                     elif role == persona_name:
@@ -406,8 +414,8 @@ class DaeBotManager:
                                     reply = resp.json().get('choices', [{}])[0].get('message', {}).get('content', 'No response')
                                     for chunk in split_message_chunks(reply):
                                         await ctx.send(chunk)
-                                    self.user_message_memory[user_id].append(("user", prompt))
-                                    self.user_message_memory[user_id].append((persona_name, reply))
+                                    self.user_message_memory[key].append(("user", prompt))
+                                    self.user_message_memory[key].append((persona_name, reply))
                                 else:
                                     await ctx.send(f"OpenRouter API error: {resp.status_code} {resp.text}")
                             else:
