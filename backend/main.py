@@ -66,4 +66,4 @@ app.include_router(bot_model_integrations.router)
 # Serve static files for model images
 static_dir = os.path.join(os.path.dirname(__file__), '../static/model_images')
 os.makedirs(static_dir, exist_ok=True)
-app.mount("/static/model_images", StaticFiles(directory=static_dir), name="model_images")
+app.mount("/model_images", StaticFiles(directory=static_dir), name="model_images")

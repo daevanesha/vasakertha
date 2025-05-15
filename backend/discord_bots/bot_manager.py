@@ -377,6 +377,39 @@ class DaeBotManager:
                                     self.user_message_memory[user_id].append((persona_name, reply))
                                 else:
                                     await ctx.send(f"Mistral API error: {resp.status_code} {resp.text}")
+                            # --- OpenRouter ---
+                            elif _provider and _provider.name.lower() == 'openrouter':
+                                import requests
+                                api_key = _provider.api_key
+                                api_url = getattr(_provider, 'api_url', 'https://openrouter.ai/api/v1/chat/completions')
+                                headers = {
+                                    "Authorization": f"Bearer {api_key}",
+                                    "Content-Type": "application/json"
+                                }
+                                messages = []
+                                if persona:
+                                    messages.append({"role": "system", "content": persona})
+                                for role, content in self.user_message_memory.get(user_id, []):
+                                    if role == "user":
+                                        messages.append({"role": "user", "content": content})
+                                    elif role == persona_name:
+                                        messages.append({"role": "assistant", "content": content})
+                                messages.append({"role": "user", "content": prompt})
+                                data = {
+                                    "model": model_id_for_api,
+                                    "messages": messages,
+                                    "max_tokens": _integration_config.get("max_tokens", 1024) if _integration_config else 1024,
+                                    "temperature": _integration_config.get("temperature", 0.7) if _integration_config else 0.7
+                                }
+                                resp = requests.post(api_url, json=data, headers=headers, timeout=30)
+                                if resp.status_code == 200:
+                                    reply = resp.json().get('choices', [{}])[0].get('message', {}).get('content', 'No response')
+                                    for chunk in split_message_chunks(reply):
+                                        await ctx.send(chunk)
+                                    self.user_message_memory[user_id].append(("user", prompt))
+                                    self.user_message_memory[user_id].append((persona_name, reply))
+                                else:
+                                    await ctx.send(f"OpenRouter API error: {resp.status_code} {resp.text}")
                             else:
                                 await ctx.send(f"Unsupported provider: {getattr(_provider, 'name', 'Unknown')}")
                             await buffer_msg.delete()

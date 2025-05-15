@@ -395,7 +395,7 @@ export const Models = () => {
                             src={model.image_url.startsWith('http') ? model.image_url : `${window.location.origin}${model.image_url}`}
                             alt="Model"
                             style={{ width: 40, height: 40, objectFit: 'cover', borderRadius: 6, border: '1px solid #eee', background: '#fafafa' }}
-                            onError={e => { (e.target as HTMLImageElement).src = '/vite.svg' }}
+                            onError={e => { (e.target as HTMLImageElement).style.display = 'none'; (e.target as HTMLImageElement).parentElement?.querySelector('.model-placeholder')?.setAttribute('style', 'display:flex'); }}
                           />
                         ) : (
                           <Box sx={{ width: 40, height: 40, borderRadius: 6, border: '1px solid #eee', background: '#fafafa', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#bbb', fontSize: 18 }}>
@@ -735,18 +735,70 @@ export const Models = () => {
             />
             <Box>
               <Typography variant="subtitle2" sx={{ mb: 1 }}>Model Image</Typography>
-              {infoModel?.image_url && (
-                <img
-                  src={infoModel.image_url.startsWith('http') ? infoModel.image_url : `${window.location.origin}${infoModel.image_url}`}
-                  alt="Model"
-                  style={{ width: 60, height: 60, objectFit: 'cover', borderRadius: 8, border: '1px solid #eee', background: '#fafafa', marginBottom: 8 }}
+              <Box sx={{ width: 60, height: 60, borderRadius: 8, border: '1px solid #eee', background: '#fafafa', display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 1, position: 'relative' }}>
+                {infoModel?.image_url ? (
+                  <img
+                    src={infoModel.image_url.startsWith('http') ? infoModel.image_url : `${window.location.origin}${infoModel.image_url}`}
+                    alt="Model"
+                    style={{ width: 60, height: 60, objectFit: 'cover', borderRadius: 8, position: 'absolute', top: 0, left: 0 }}
+                    onError={e => { (e.target as HTMLImageElement).style.display = 'none'; (e.target as HTMLImageElement).parentElement?.querySelector('.model-placeholder')?.setAttribute('style', 'display:flex'); }}
+                  />
+                ) : null}
+                <Box className="model-placeholder" sx={{ width: 60, height: 60, borderRadius: 8, display: infoModel?.image_url ? 'none' : 'flex', alignItems: 'center', justifyContent: 'center', color: '#bbb', fontSize: 32, background: 'none', position: 'absolute', top: 0, left: 0 }}>
+                  <span role="img" aria-label="No image">🖼️</span>
+                </Box>
+              </Box>
+              <Button
+                variant="outlined"
+                component="label"
+                sx={{ mt: 1 }}
+              >
+                Upload Image
+                <input
+                  type="file"
+                  accept="image/*"
+                  hidden
+                  onChange={async (e) => {
+                    if (!infoModel) return;
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    setSaving(true);
+                    const formData = new FormData();
+                    formData.append('file', file);
+                    try {
+                      const updated = await api.upload(`/bot-model-integrations/model/${infoModel.id}/upload_image`, formData);
+                      queryClient.invalidateQueries({ queryKey: ['models'] });
+                      setInfoModel((prev) => prev ? { ...prev, image_url: updated.image_url } : prev);
+                    } catch (e) {
+                      // Optionally show error
+                    }
+                    setSaving(false);
+                  }}
                 />
-              )}
+              </Button>
             </Box>
           </Stack>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setInfoOpen(false)}>Cancel</Button>
+          <Button 
+            variant="contained" 
+            onClick={async () => {
+              if (!infoModel) return;
+              setSaving(true);
+              try {
+                await api.put(`/models/${infoModel.id}`, { short_description: infoShortDesc });
+                queryClient.invalidateQueries({ queryKey: ['models'] });
+                setInfoOpen(false);
+              } catch (e) {
+                // Optionally show error
+              }
+              setSaving(false);
+            }}
+            disabled={saving}
+          >
+            {saving ? 'Saving...' : 'Save'}
+          </Button>
         </DialogActions>
       </Dialog>
     </Stack>

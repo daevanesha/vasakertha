@@ -6,13 +6,8 @@ import os
 
 load_dotenv()
 
-POSTGRES_USER = "postgres"
-POSTGRES_PASSWORD = "Berkah777"
-POSTGRES_HOST = "localhost"
-POSTGRES_PORT = "5432"
-POSTGRES_DB = "ai_discord_manager"
-
-SQLALCHEMY_DATABASE_URL = f"postgresql://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{POSTGRES_HOST}:{POSTGRES_PORT}/{POSTGRES_DB}"
+DATABASE_URL='postgresql://postgres:[Hablumminannas758170!]@db.mfwltcjggfqebyoefebw.supabase.co:5432/postgres'
+SQLALCHEMY_DATABASE_URL = 'postgresql://postgres.mfwltcjggfqebyoefebw:Hablumminannas758170!@aws-0-ap-southeast-1.pooler.supabase.com:6543/postgres'
 
 engine = create_engine(SQLALCHEMY_DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
