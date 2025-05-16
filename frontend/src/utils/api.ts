@@ -21,7 +21,11 @@ const handleResponse = async (res: Response) => {
 };
 
 export const api = {
-  get: (url: string) => fetch(`${API_BASE_URL}${url}`).then(handleResponse),
+  get: async (url: string) => {
+    const response = await fetch(`http://localhost:8000${url}`); // Ensure the correct backend URL
+    if (!response.ok) throw new Error('Network response was not ok');
+    return await response.json();
+  },
   post: (url: string, data: any) => fetch(`${API_BASE_URL}${url}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

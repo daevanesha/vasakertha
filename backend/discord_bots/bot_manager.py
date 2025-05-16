@@ -3,6 +3,7 @@ from discord.ext import commands
 from typing import Dict, Optional, Tuple
 import asyncio
 import logging
+import logging.handlers
 import traceback
 import sqlalchemy
 from sqlalchemy.orm import sessionmaker
@@ -15,11 +16,35 @@ import collections
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# Set up logging to a file
+log_file = "bot_conversations.log"
+log_level = logging.INFO
+log_format = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+
+# Create a rotating file handler
+log_handler = logging.handlers.RotatingFileHandler(
+    log_file,
+    maxBytes=1024 * 1024 * 5,  # 5 MB
+    backupCount=2,  # Rotate through 2 files
+    encoding='utf8'
+)
+
+# Set the log format
+log_formatter = logging.Formatter(log_format)
+log_handler.setFormatter(log_formatter)
+
+# Get the root logger and add the handler
+logger = logging.getLogger(__name__)
+logger.addHandler(log_handler)
+logger.setLevel(log_level)
+
 class DaeBotManager:
     def __init__(self):
         self.bots: Dict[int, commands.Bot] = {}
         # Per-user, per-channel memory: (channel_id, user_id) -> deque of last 10 (role, content) tuples
         self.user_message_memory = collections.defaultdict(lambda: collections.deque(maxlen=10))
+        # Store conversation history
+        self.conversation_history = []
 
     def get_memory_key(self, channel_id, user_id):
         return f"{channel_id}:{user_id}"
@@ -36,8 +61,9 @@ class DaeBotManager:
             if message.author == bot.user:
                 return
             # Only store command user messages as ("user", content) with channel context
-            key = self.get_memory_key(message.channel.id, message.author.id)
-            self.user_message_memory[key].append(("user", message.content))
+            if message.content.startswith('!'):
+                key = self.get_memory_key(message.channel.id, message.author.id)
+                self.user_message_memory[key].append(("user", message.content))
             await bot.process_commands(message)
 
         @bot.event
@@ -178,9 +204,6 @@ class DaeBotManager:
                     # Set model image as thumbnail if available and valid
                     if image_url and (image_url.startswith("http://") or image_url.startswith("https://")):
                         embed.set_thumbnail(url=image_url)
-                        logger.info(f"Set Discord embed thumbnail for model {model_name}: {image_url}")
-                    else:
-                        logger.warning(f"No valid image_url for model {model_name}: {image_url}")
                     embed.set_footer(text="Model provided by API*")
                     await ctx.send(embed=embed)
                     sent = True
@@ -224,6 +247,7 @@ class DaeBotManager:
                                 persona = None
                             user_id = ctx.author.id
                             channel_id = ctx.channel.id
+                            guild_id = ctx.guild.id  # Get guild ID
                             # --- Get persona/model name for this command ---
                             persona_name = (getattr(_model, 'name', None) or getattr(_model, 'model_id', None) or 'assistant').lower()
                             # --- Build context: persona, then memory (filtered), then current prompt ---
@@ -238,8 +262,6 @@ class DaeBotManager:
                                 elif role == persona_name:
                                     context_messages.append({"role": "assistant", "content": content})
                             context_messages.append({"role": "user", "content": prompt})
-                            # --- DEBUG: Log the context being sent to the model ---
-                            # logger.info(f"[DEBUG] Model context for user {user_id} (provider: {getattr(_provider, 'name', 'unknown')}, persona: {persona_name}):\n" + json.dumps(context_messages, indent=2))
                             # --- OpenAI ---
                             if _provider and _provider.name.lower() == 'openai':
                                 import openai
@@ -250,6 +272,15 @@ class DaeBotManager:
                                     **(_integration_config or {})
                                 )
                                 reply = response['choices'][0]['message']['content']
+                                # Store conversation data
+                                self.conversation_history.append({
+                                    "user_id": user_id,
+                                    "channel_id": channel_id,
+                                    "guild_id": guild_id,
+                                    "user_message": prompt,
+                                    "bot_response": reply,
+                                    "model_name": persona_name
+                                })
                                 for chunk in split_message_chunks(reply):
                                     await ctx.send(chunk)
                                 # Store both user prompt and bot reply in memory as ("user", prompt), (persona_name, reply)
@@ -284,6 +315,15 @@ class DaeBotManager:
                                 resp = requests.post(api_url, json=data, headers=headers, timeout=30)
                                 if resp.status_code == 200:
                                     reply = resp.json().get('content', [{}])[0].get('text', 'No response')
+                                    # Store conversation data
+                                    self.conversation_history.append({
+                                        "user_id": user_id,
+                                        "channel_id": channel_id,
+                                        "guild_id": guild_id,
+                                        "user_message": prompt,
+                                        "bot_response": reply,
+                                        "model_name": persona_name
+                                    })
                                     for chunk in split_message_chunks(reply):
                                         await ctx.send(chunk)
                                     self.user_message_memory[key].append(("user", prompt))
@@ -313,6 +353,15 @@ class DaeBotManager:
                                 if resp.status_code == 200:
                                     candidates = resp.json().get('candidates', [])
                                     reply = candidates[0]['content']['parts'][0]['text'] if candidates and 'content' in candidates[0] and 'parts' in candidates[0]['content'] and candidates[0]['content']['parts'] else 'No response'
+                                    # Store conversation data
+                                    self.conversation_history.append({
+                                        "user_id": user_id,
+                                        "channel_id": channel_id,
+                                        "guild_id": guild_id,
+                                        "user_message": prompt,
+                                        "bot_response": reply,
+                                        "model_name": persona_name
+                                    })
                                     for chunk in split_message_chunks(reply):
                                         await ctx.send(chunk)
                                     self.user_message_memory[key].append(("user", prompt))
@@ -343,9 +392,18 @@ class DaeBotManager:
                                     "max_tokens": _integration_config.get("max_tokens", 1024) if _integration_config else 1024,
                                     "temperature": _integration_config.get("temperature", 0.7) if _integration_config else 0.7
                                 }
-                                resp = requests.post(api_url, json=data, headers=headers, timeout=30)
+                                resp = requests.post(api_url, json=data, headers=headers, timeout=60)
                                 if resp.status_code == 200:
                                     reply = resp.json().get('choices', [{}])[0].get('message', {}).get('content', 'No response')
+                                    # Store conversation data
+                                    self.conversation_history.append({
+                                        "user_id": user_id,
+                                        "channel_id": channel_id,
+                                        "guild_id": guild_id,
+                                        "user_message": prompt,
+                                        "bot_response": reply,
+                                        "model_name": persona_name
+                                    })
                                     for chunk in split_message_chunks(reply):
                                         await ctx.send(chunk)
                                     self.user_message_memory[key].append(("user", prompt))
@@ -376,9 +434,18 @@ class DaeBotManager:
                                     "max_tokens": _integration_config.get("max_tokens", 1024) if _integration_config else 1024,
                                     "temperature": _integration_config.get("temperature", 0.7) if _integration_config else 0.7
                                 }
-                                resp = requests.post(api_url, json=data, headers=headers, timeout=30)
+                                resp = requests.post(api_url, json=data, headers=headers, timeout=60)
                                 if resp.status_code == 200:
                                     reply = resp.json().get('choices', [{}])[0].get('message', {}).get('content', 'No response')
+                                    # Store conversation data
+                                    self.conversation_history.append({
+                                        "user_id": user_id,
+                                        "channel_id": channel_id,
+                                        "guild_id": guild_id,
+                                        "user_message": prompt,
+                                        "bot_response": reply,
+                                        "model_name": persona_name
+                                    })
                                     for chunk in split_message_chunks(reply):
                                         await ctx.send(chunk)
                                     self.user_message_memory[key].append(("user", prompt))
@@ -409,9 +476,18 @@ class DaeBotManager:
                                     "max_tokens": _integration_config.get("max_tokens", 1024) if _integration_config else 1024,
                                     "temperature": _integration_config.get("temperature", 0.7) if _integration_config else 0.7
                                 }
-                                resp = requests.post(api_url, json=data, headers=headers, timeout=30)
+                                resp = requests.post(api_url, json=data, headers=headers, timeout=60)
                                 if resp.status_code == 200:
                                     reply = resp.json().get('choices', [{}])[0].get('message', {}).get('content', 'No response')
+                                    # Store conversation data
+                                    self.conversation_history.append({
+                                        "user_id": user_id,
+                                        "channel_id": channel_id,
+                                        "guild_id": guild_id,
+                                        "user_message": prompt,
+                                        "bot_response": reply,
+                                        "model_name": persona_name
+                                    })
                                     for chunk in split_message_chunks(reply):
                                         await ctx.send(chunk)
                                     self.user_message_memory[key].append(("user", prompt))
@@ -420,7 +496,13 @@ class DaeBotManager:
                                     await ctx.send(f"OpenRouter API error: {resp.status_code} {resp.text}")
                             else:
                                 await ctx.send(f"Unsupported provider: {getattr(_provider, 'name', 'Unknown')}")
-                            await buffer_msg.delete()
+                            try:
+                                await buffer_msg.delete()
+                            except Exception as e:
+                                logger.error(f"Error in custom model command: {traceback.format_exc()}")
+                                error_chunks = split_message_chunks(f"An error occurred: {str(e)}\n\nDetails:\n{traceback.format_exc()}")
+                                for chunk in error_chunks:
+                                    await ctx.send(chunk)
                         except Exception as e:
                             logger.error(f"Error in custom model command: {traceback.format_exc()}")
                             error_chunks = split_message_chunks(f"An error occurred: {str(e)}\n\nDetails:\n{traceback.format_exc()}")

@@ -6,6 +6,7 @@ import { AIProviders } from './pages/AIProviders'
 import { Models } from './pages/Models'
 import { BotManager } from './pages/BotManager'
 import { BotModelIntegration } from './pages/BotModelIntegration'
+import ConversationHistory from './pages/ConversationHistory'
 import theme from './theme'
 
 function App() {
@@ -20,6 +21,7 @@ function App() {
             <Route path="models" element={<Models />} />
             <Route path="bots" element={<BotManager />} />
             <Route path="bot-integrations/:botId" element={<BotModelIntegration />} />
+            <Route path="conversation-history" element={<ConversationHistory />} />
           </Route>
         </Routes>
       </Router>

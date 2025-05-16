@@ -11,9 +11,10 @@ from typing import Tuple
 import asyncio
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
-from routers import providers, models as models_router, bots, bot_model_integrations
+from routers import providers, models as models_router, bots, bot_model_integrations, logs  # Import the new logs router
 from fastapi.staticfiles import StaticFiles
 import os
+from pydantic import BaseModel
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -62,8 +63,23 @@ app.include_router(providers.router)
 app.include_router(models_router.router)
 app.include_router(bots.router)
 app.include_router(bot_model_integrations.router)
+app.include_router(logs.router, prefix="/logs", tags=["logs"])  # Include the logs router
 
 # Serve static files for model images
 static_dir = os.path.join(os.path.dirname(__file__), '../static/model_images')
 os.makedirs(static_dir, exist_ok=True)
 app.mount("/model_images", StaticFiles(directory=static_dir), name="model_images")
+
+#class ConversationEntry(BaseModel):
+#    user: str
+#    model: str
+
+# Sample data for demonstration
+#conversation_history = [
+#    ConversationEntry(user='User1', model='Model1'),
+#    ConversationEntry(user='User2', model='Model2'),
+#]
+
+#@app.get('/conversation-history')
+#async def get_conversation_history():
+#    return conversation_history

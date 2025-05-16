@@ -1,0 +1,123 @@
+2025-05-16 10:27:14,975 - discord_bots.bot_manager - INFO - Creating bot DAI with all intents enabled
+2025-05-16 10:27:21,148 - discord_bots.bot_manager - INFO - Bot DAI is ready and connected as D.AI#6483
+2025-05-16 10:27:21,152 - discord_bots.bot_manager - INFO - Bot is in following guilds: ['Sahabat Legenda', 'Cita Abadi Bersama Usaha Luhur']
+2025-05-16 10:27:21,153 - discord_bots.bot_manager - INFO - Command prefix is: !
+2025-05-16 10:27:50,876 - discord_bots.bot_manager - INFO - Received message from daevaesma: !askabu jelaskan tentang tazkiyatun nafs
+2025-05-16 10:28:21,801 - discord_bots.bot_manager - ERROR - Error in custom model command: Traceback (most recent call last):
+  File "C:\Users\adnan\Documents\GitHub\vasakertha\backend\venv\Lib\site-packages\urllib3\response.py", line 754, in _error_catcher
+    yield
+  File "C:\Users\adnan\Documents\GitHub\vasakertha\backend\venv\Lib\site-packages\urllib3\response.py", line 1219, in read_chunked
+    self._update_chunk_length()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\adnan\Documents\GitHub\vasakertha\backend\venv\Lib\site-packages\urllib3\response.py", line 1138, in _update_chunk_length
+    line = self._fp.fp.readline()  # type: ignore[union-attr]
+  File "C:\Users\adnan\AppData\Local\Programs\Python\Python313\Lib\socket.py", line 719, in readinto
+    return self._sock.recv_into(b)
+           ~~~~~~~~~~~~~~~~~~~~^^^
+  File "C:\Users\adnan\AppData\Local\Programs\Python\Python313\Lib\ssl.py", line 1304, in recv_into
+    return self.read(nbytes, buffer)
+           ~~~~~~~~~^^^^^^^^^^^^^^^^
+  File "C:\Users\adnan\AppData\Local\Programs\Python\Python313\Lib\ssl.py", line 1138, in read
+    return self._sslobj.read(len, buffer)
+           ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+TimeoutError: The read operation timed out
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\adnan\Documents\GitHub\vasakertha\backend\venv\Lib\site-packages\requests\models.py", line 820, in generate
+    yield from self.raw.stream(chunk_size, decode_content=True)
+  File "C:\Users\adnan\Documents\GitHub\vasakertha\backend\venv\Lib\site-packages\urllib3\response.py", line 1063, in stream
+    yield from self.read_chunked(amt, decode_content=decode_content)
+  File "C:\Users\adnan\Documents\GitHub\vasakertha\backend\venv\Lib\site-packages\urllib3\response.py", line 1202, in read_chunked
+    with self._error_catcher():
+         ~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\adnan\AppData\Local\Programs\Python\Python313\Lib\contextlib.py", line 162, in __exit__
+    self.gen.throw(value)
+    ~~~~~~~~~~~~~~^^^^^^^
+  File "C:\Users\adnan\Documents\GitHub\vasakertha\backend\venv\Lib\site-packages\urllib3\response.py", line 759, in _error_catcher
+    raise ReadTimeoutError(self._pool, None, "Read timed out.") from e  # type: ignore[arg-type]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+urllib3.exceptions.ReadTimeoutError: HTTPSConnectionPool(host='api.deepseek.com', port=443): Read timed out.
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\adnan\Documents\GitHub\vasakertha\backend\discord_bots\bot_manager.py", line 377, in custom_model_command
+    resp = requests.post(api_url, json=data, headers=headers, timeout=30)
+  File "C:\Users\adnan\Documents\GitHub\vasakertha\backend\venv\Lib\site-packages\requests\api.py", line 115, in post
+    return request("post", url, data=data, json=json, **kwargs)
+  File "C:\Users\adnan\Documents\GitHub\vasakertha\backend\venv\Lib\site-packages\requests\api.py", line 59, in request
+    return session.request(method=method, url=url, **kwargs)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\adnan\Documents\GitHub\vasakertha\backend\venv\Lib\site-packages\requests\sessions.py", line 589, in request
+    resp = self.send(prep, **send_kwargs)
+  File "C:\Users\adnan\Documents\GitHub\vasakertha\backend\venv\Lib\site-packages\requests\sessions.py", line 746, in send
+    r.content
+  File "C:\Users\adnan\Documents\GitHub\vasakertha\backend\venv\Lib\site-packages\requests\models.py", line 902, in content
+    self._content = b"".join(self.iter_content(CONTENT_CHUNK_SIZE)) or b""
+                    ~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\adnan\Documents\GitHub\vasakertha\backend\venv\Lib\site-packages\requests\models.py", line 826, in generate
+    raise ConnectionError(e)
+requests.exceptions.ConnectionError: HTTPSConnectionPool(host='api.deepseek.com', port=443): Read timed out.
+
+2025-05-16 10:30:09,135 - discord_bots.bot_manager - INFO - Creating bot DAI with all intents enabled
+2025-05-16 10:30:13,533 - discord_bots.bot_manager - INFO - Bot DAI is ready and connected as D.AI#6483
+2025-05-16 10:30:13,545 - discord_bots.bot_manager - INFO - Bot is in following guilds: ['Sahabat Legenda', 'Cita Abadi Bersama Usaha Luhur']
+2025-05-16 10:30:13,546 - discord_bots.bot_manager - INFO - Command prefix is: !
+2025-05-16 10:30:22,933 - discord_bots.bot_manager - INFO - Received message from daevaesma: !askabu jelaskan tentang tazkiyatun nafs
+2025-05-16 10:30:54,351 - discord_bots.bot_manager - INFO - Bot response to daevaesma: Wa'alaikumussalam warahmatullahi wabarakatuh.  
+
+Tazkiyatun nafs (تزكية النفس) adalah proses penyucian jiwa dari segala kotoran hati (seperti riya', hasad, ujub, dan sifat tercela lainnya) serta menghiasinya dengan akhlak mulia (seperti ikhlas, sabar, syukur, tawakal, dan cinta kepada Allah).  
+
+**Dasar dalam Al-Qur'an & Hadits:**  
+1. **QS. Asy-Syams: 9-10**:  
+   *"Sungguh beruntung orang yang menyucikan jiwanya, dan sungguh merugi orang yang mengotorinya."*  
+2. **QS. Al-Baqarah: 151**:  
+   Allah menyebutkan salah satu tujuan diutusnya Rasulullah ﷺ adalah untuk *"menyucikan jiwa"* (tazkiyah).  
+3. **Hadits**:  
+   Nabi ﷺ bersabda, *"Sesungguhnya dalam jasad ada segumpal daging. Jika ia baik, maka baik seluruh tubuh. Jika ia rusak, rusak seluruh tubuh. Ketahuilah, itu adalah hati."* (HR. Bukhari-Muslim).  
+
+**Tahapan Tazkiyatun Nafs:**  
+1. **Muhasabah (Introspeksi Diri)**:  
+   Mengevaluasi kesalahan dan memperbaiki diri (QS. Al-Hasyr: 18).  
+2. **Taqwa**:  
+   Menjaga diri dari maksiat dan meningkatkan ketaatan (QS. Al-Baqarah: 197).  
+3. **Dzikrullah**:  
+   Memperbanyak zikir untuk mengingat Allah (QS. Ar-Ra'd: 28).  
+4. **Bergaul dengan Orang Shalih**:  
+   Lingkungan baik membantu proses penyucian jiwa (HR. Abu Dawud).  
+
+**Metode Praktis:**  
+- **Shalat Khusyuk**  
+- **Puasa Sunnah**  
+- **Sedekah**  
+- **Membaca Al-Qur'an dengan Tadabbur**  
+- **Memohon Ampun (Istighfar)**  
+
+Tazkiyah adalah perjalanan seumur hidup. Imam Al-Ghazali berkata, *"Barangsiapa sibuk membersihkan hatinya, Allah akan memenuhi hatinya dengan cahaya hidayah."*  
+
+Semoga Allah mudahkan kita semua dalam menyucikan jiwa. Aamiin.  
+
+Ada yang ingin ditanyakan lebih detail?
+2025-05-16 10:32:03,582 - discord_bots.bot_manager - INFO - Received message from daevaesma: !askabu ya lanjutkan
+2025-05-16 10:32:14,852 - discord_bots.bot_manager - INFO - Bot response to daevaesma: Wa'alaikumussalam warahmatullahi wabarakatuh.  
+
+Silakan, saudaraku. Apa yang ingin Anda tanyakan atau lanjutkan? Saya siap membantu dengan izin Allah.  
+
+Contoh pertanyaan yang bisa diajukan:  
+- "Bagaimana tata cara wudhu yang benar?"  
+- "Apa hukum investasi saham dalam Islam?"  
+- "Bolehkah memakai jimat untuk perlindungan?"  
+
+Semoga Allah memudahkan urusan kita semua. Aamiin.  
+
+*Note: Mohon sampaikan pertanyaan secara spesifik agar saya bisa memberikan jawaban yang tepat.*
+2025-05-16 11:37:39,558 - discord_bots.bot_manager - INFO - Creating bot DAI with all intents enabled
+2025-05-16 11:37:44,068 - discord_bots.bot_manager - INFO - Bot DAI is ready and connected as D.AI#6483
+2025-05-16 11:37:44,069 - discord_bots.bot_manager - INFO - Bot is in following guilds: ['Sahabat Legenda', 'Cita Abadi Bersama Usaha Luhur']
+2025-05-16 11:37:44,070 - discord_bots.bot_manager - INFO - Command prefix is: !
+2025-05-16 11:41:53,808 - discord_bots.bot_manager - INFO - Creating bot DAI with all intents enabled
+2025-05-16 11:41:58,007 - discord_bots.bot_manager - INFO - Bot DAI is ready and connected as D.AI#6483
+2025-05-16 11:41:58,007 - discord_bots.bot_manager - INFO - Bot is in following guilds: ['Sahabat Legenda', 'Cita Abadi Bersama Usaha Luhur']
+2025-05-16 11:41:58,008 - discord_bots.bot_manager - INFO - Command prefix is: !
