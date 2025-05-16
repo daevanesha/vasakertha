@@ -24,15 +24,15 @@ class AIProvider(AIProviderBase):
     updated_at: datetime
 
 # AI Model Schemas
-class AIModelBase(BaseModel):
+class AIModelBase(BaseModelWithConfig):
     name: str
     provider_id: int
     model_id: str
     configuration: str
-    is_active: bool = True
-    short_description: Optional[str] = ""
-    active: Optional[bool] = True
-    image_url: Optional[str] = ""  # New: model image URL
+    is_active: bool
+    short_description: Optional[str] = None
+    active: Optional[bool] = None
+    image_url: Optional[str] = None  # New: model image URL
 
 class AIModelCreate(AIModelBase):
     pass

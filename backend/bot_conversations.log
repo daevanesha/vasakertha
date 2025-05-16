@@ -171,3 +171,24 @@ AttributeError: 'Bot' object has no attribute 'id'
 2025-05-16 14:03:57,618 - discord_bots.bot_manager - INFO - Bot DAI is ready and connected as D.AI#6483
 2025-05-16 14:03:57,618 - discord_bots.bot_manager - INFO - Bot is in following guilds: ['Sahabat Legenda', 'Cita Abadi Bersama Usaha Luhur']
 2025-05-16 14:03:57,619 - discord_bots.bot_manager - INFO - Command prefix is: !
+2025-05-16 14:14:49,930 - discord_bots.bot_manager - ERROR - Command error: Command "askbabu" is not found
+2025-05-16 14:51:11,346 - discord_bots.bot_manager - INFO - Creating bot DAI with all intents enabled
+2025-05-16 14:51:19,014 - discord_bots.bot_manager - INFO - Bot DAI is ready and connected as D.AI#6483
+2025-05-16 14:51:19,015 - discord_bots.bot_manager - INFO - Bot is in following guilds: ['Sahabat Legenda', 'Cita Abadi Bersama Usaha Luhur']
+2025-05-16 14:51:19,015 - discord_bots.bot_manager - INFO - Command prefix is: !
+2025-05-16 16:18:37,534 - discord_bots.bot_manager - INFO - Creating bot DAI with all intents enabled
+2025-05-16 16:18:42,055 - discord_bots.bot_manager - INFO - Bot DAI is ready and connected as D.AI#6483
+2025-05-16 16:18:42,055 - discord_bots.bot_manager - INFO - Bot is in following guilds: ['Sahabat Legenda', 'Cita Abadi Bersama Usaha Luhur']
+2025-05-16 16:18:42,055 - discord_bots.bot_manager - INFO - Command prefix is: !
+2025-05-16 16:24:12,107 - discord_bots.bot_manager - INFO - Creating bot DAI with all intents enabled
+2025-05-16 16:24:16,452 - discord_bots.bot_manager - INFO - Bot DAI is ready and connected as D.AI#6483
+2025-05-16 16:24:16,453 - discord_bots.bot_manager - INFO - Bot is in following guilds: ['Sahabat Legenda', 'Cita Abadi Bersama Usaha Luhur']
+2025-05-16 16:24:16,454 - discord_bots.bot_manager - INFO - Command prefix is: !
+2025-05-16 16:25:45,332 - discord_bots.bot_manager - INFO - Creating bot DAI with all intents enabled
+2025-05-16 16:25:49,645 - discord_bots.bot_manager - INFO - Bot DAI is ready and connected as D.AI#6483
+2025-05-16 16:25:49,646 - discord_bots.bot_manager - INFO - Bot is in following guilds: ['Sahabat Legenda', 'Cita Abadi Bersama Usaha Luhur']
+2025-05-16 16:25:49,646 - discord_bots.bot_manager - INFO - Command prefix is: !
+2025-05-16 16:46:46,959 - discord_bots.bot_manager - INFO - Creating bot DAI with all intents enabled
+2025-05-16 16:46:51,290 - discord_bots.bot_manager - INFO - Bot DAI is ready and connected as D.AI#6483
+2025-05-16 16:46:51,292 - discord_bots.bot_manager - INFO - Bot is in following guilds: ['Sahabat Legenda', 'Cita Abadi Bersama Usaha Luhur']
+2025-05-16 16:46:51,293 - discord_bots.bot_manager - INFO - Command prefix is: !

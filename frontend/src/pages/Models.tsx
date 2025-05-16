@@ -33,6 +33,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm, Controller } from 'react-hook-form'
 import { api } from '../utils/api'
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
+import { createClient } from '@supabase/supabase-js';
 
 // Type definitions
 interface Provider {
@@ -171,6 +172,40 @@ function getAvailableModels(providerId: number, providers: Provider[], openRoute
   const providerType = getProviderType(providerId, providers)
   if (providerType === 'openrouter') return openRouterModels;
   return providerType ? providerModels[providerType] : []
+}
+
+// --- SUPABASE STORAGE CONFIG ---
+// Set these to your real Supabase project values. Get them from your Supabase dashboard > Project Settings > API.
+// DO NOT commit real keys to public repos. For local dev, you can set them here.
+const SUPABASE_URL: string = 'https://mfwltcjggfqebyoefebw.supabase.co'; // <-- REPLACE with your Supabase project URL
+const SUPABASE_ANON_KEY: string = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1md2x0Y2pnZ2ZxZWJ5b2VmZWJ3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDcyODEyMjQsImV4cCI6MjA2Mjg1NzIyNH0.iQ6FsmbxXRoY48CpAUH8p3s2aOxexp9YlDnvgWrctw4'; // <-- REPLACE with your Supabase anon public key
+const SUPABASE_BUCKET = 'model-images';
+let supabase: ReturnType<typeof createClient> | null = null;
+if (
+  SUPABASE_URL &&
+  SUPABASE_ANON_KEY &&
+  !SUPABASE_URL.includes('<your-supabase-project>') &&
+  !SUPABASE_ANON_KEY.includes('<your-anon-key>') &&
+  SUPABASE_URL !== 'https://your-project.supabase.co' &&
+  SUPABASE_ANON_KEY !== 'your-anon-key'
+) {
+  supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+}
+
+async function uploadModelImageToSupabase(file: File, modelId: number): Promise<string | null> {
+  if (!supabase) return null;
+  const fileExt = file.name.split('.').pop();
+  // Sanitize filename: replace spaces and special characters with underscores
+  const sanitizedFilename = file.name.replace(/[^a-zA-Z0-9_\.]/g, '_');
+  const filePath = `model_${modelId}_${Date.now()}.${sanitizedFilename}`;
+  const { error } = await supabase.storage.from(SUPABASE_BUCKET).upload(filePath, file, {
+    cacheControl: '3600',
+    upsert: true,
+    contentType: file.type,
+  });
+  if (error) return null;
+  const { data: publicUrlData } = supabase.storage.from(SUPABASE_BUCKET).getPublicUrl(filePath);
+  return publicUrlData?.publicUrl || null;
 }
 
 export const Models = () => {
@@ -390,9 +425,11 @@ export const Models = () => {
                         />
                       </TableCell>
                       <TableCell>
-                        {model.image_url ? (
+                        {typeof model.image_url === 'string' && model.image_url.trim().length > 0 ? (
                           <img
-                            src={model.image_url.startsWith('http') ? model.image_url : `${window.location.origin}${model.image_url}`}
+                            src={model.image_url.trim().startsWith('https://mfwltcjggfqebyoefebw.supabase.co/storage/v1/object/public/model-images/')
+                              ? `/models/proxy-image?url=${encodeURIComponent(model.image_url.trim())}`
+                              : model.image_url.trim()}
                             alt="Model"
                             style={{ width: 40, height: 40, objectFit: 'cover', borderRadius: 6, border: '1px solid #eee', background: '#fafafa' }}
                             onError={e => { (e.target as HTMLImageElement).style.display = 'none'; (e.target as HTMLImageElement).parentElement?.querySelector('.model-placeholder')?.setAttribute('style', 'display:flex'); }}
@@ -737,12 +774,17 @@ export const Models = () => {
               <Typography variant="subtitle2" sx={{ mb: 1 }}>Model Image</Typography>
               <Box sx={{ width: 60, height: 60, borderRadius: 8, border: '1px solid #eee', background: '#fafafa', display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 1, position: 'relative' }}>
                 {infoModel?.image_url ? (
+                  <>
+                  {console.log("Proxy URL:", `/models/proxy-image?url=${encodeURIComponent(infoModel.image_url)}`)}
                   <img
-                    src={infoModel.image_url.startsWith('http') ? infoModel.image_url : `${window.location.origin}${infoModel.image_url}`}
+                    src={infoModel?.image_url.startsWith('https://mfwltcjggfqebyoefebw.supabase.co/storage/v1/object/public/model-images/')
+                      ? `/models/proxy-image?url=${encodeURIComponent(infoModel.image_url)}`
+                      : infoModel?.image_url}
                     alt="Model"
                     style={{ width: 60, height: 60, objectFit: 'cover', borderRadius: 8, position: 'absolute', top: 0, left: 0 }}
                     onError={e => { (e.target as HTMLImageElement).style.display = 'none'; (e.target as HTMLImageElement).parentElement?.querySelector('.model-placeholder')?.setAttribute('style', 'display:flex'); }}
                   />
+                  </>
                 ) : null}
                 <Box className="model-placeholder" sx={{ width: 60, height: 60, borderRadius: 8, display: infoModel?.image_url ? 'none' : 'flex', alignItems: 'center', justifyContent: 'center', color: '#bbb', fontSize: 32, background: 'none', position: 'absolute', top: 0, left: 0 }}>
                   <span role="img" aria-label="No image">🖼️</span>
@@ -752,6 +794,7 @@ export const Models = () => {
                 variant="outlined"
                 component="label"
                 sx={{ mt: 1 }}
+                disabled={!supabase}
               >
                 Upload Image
                 <input
@@ -762,15 +805,21 @@ export const Models = () => {
                     if (!infoModel) return;
                     const file = e.target.files?.[0];
                     if (!file) return;
+                    console.log("File type:", file.type);
                     setSaving(true);
-                    const formData = new FormData();
-                    formData.append('file', file);
                     try {
-                      const updated = await api.upload(`/bot-model-integrations/model/${infoModel.id}/upload_image`, formData);
-                      queryClient.invalidateQueries({ queryKey: ['models'] });
-                      setInfoModel((prev) => prev ? { ...prev, image_url: updated.image_url } : prev);
+                      // Upload to Supabase Storage
+                      const publicUrl = await uploadModelImageToSupabase(file, infoModel.id);
+                      if (publicUrl) {
+                        // Update model image_url in backend
+                        await api.put(`/models/${infoModel.id}`, { image_url: publicUrl });
+                        queryClient.invalidateQueries({ queryKey: ['models'] });
+                        setInfoModel((prev) => prev ? { ...prev, image_url: publicUrl } : prev);
+                      } else {
+                        alert('Image upload failed.');
+                      }
                     } catch (e) {
-                      // Optionally show error
+                      alert('Image upload failed.');
                     }
                     setSaving(false);
                   }}

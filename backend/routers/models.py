@@ -1,8 +1,9 @@
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, Query
 from sqlalchemy.orm import Session
 from config.database import get_db
 from models import models
 from schemas import schemas
+import httpx
 
 router = APIRouter(prefix="/models", tags=["models"])
 
@@ -42,6 +43,25 @@ def get_active_models(db: Session = Depends(get_db), request: Request = None):
             if m.image_url and not m.image_url.startswith("http"):
                 m.image_url = f"{base_url}{m.image_url}"
     return models_list
+
+@router.get("/proxy-image")
+def proxy_image(url: str = Query(..., description="Public Supabase Storage image URL")):
+    # Only allow proxying images from the expected Supabase bucket for security
+    allowed_prefix = "https://mfwltcjggfqebyoefebw.supabase.co/storage/v1/object/public/model-images/"
+    if not url.startswith(allowed_prefix):
+        raise HTTPException(status_code=400, detail="Invalid image URL")
+    try:
+        with httpx.Client() as client:
+            r = client.get(url)
+            if r.status_code != 200:
+                raise HTTPException(status_code=404, detail="Image not found")
+            headers = {
+                "Content-Type": r.headers.get("content-type", "image/png"),
+                "Access-Control-Allow-Origin": "*"
+            }
+            return Response(content=r.content, headers=headers)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Proxy error: {str(e)}")
 
 @router.get("/{model_id}", response_model=schemas.AIModel)
 def get_model(model_id: int, db: Session = Depends(get_db), request: Request = None):
