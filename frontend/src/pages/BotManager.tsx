@@ -265,6 +265,15 @@ export const BotManager = () => {
                       </IconButton>
                       <IconButton
                         size="small"
+                        color="info"
+                        onClick={() => navigate(`/bots/${bot.id}/logs`)}
+                        title="View Logs"
+                        style={{ marginRight: 4 }}
+                      >
+                        <Visibility />
+                      </IconButton>
+                      <IconButton
+                        size="small"
                         color="secondary"
                         onClick={() => handleEdit(bot)}
                         title="Edit Bot"

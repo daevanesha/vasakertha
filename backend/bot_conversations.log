@@ -121,3 +121,53 @@ Semoga Allah memudahkan urusan kita semua. Aamiin.
 2025-05-16 11:41:58,007 - discord_bots.bot_manager - INFO - Bot DAI is ready and connected as D.AI#6483
 2025-05-16 11:41:58,007 - discord_bots.bot_manager - INFO - Bot is in following guilds: ['Sahabat Legenda', 'Cita Abadi Bersama Usaha Luhur']
 2025-05-16 11:41:58,008 - discord_bots.bot_manager - INFO - Command prefix is: !
+2025-05-16 11:46:38,024 - discord_bots.bot_manager - INFO - Creating bot DAI with all intents enabled
+2025-05-16 11:46:42,352 - discord_bots.bot_manager - INFO - Bot DAI is ready and connected as D.AI#6483
+2025-05-16 11:46:42,352 - discord_bots.bot_manager - INFO - Bot is in following guilds: ['Sahabat Legenda', 'Cita Abadi Bersama Usaha Luhur']
+2025-05-16 11:46:42,353 - discord_bots.bot_manager - INFO - Command prefix is: !
+2025-05-16 13:05:14,833 - discord_bots.bot_manager - INFO - Creating bot DAI with all intents enabled
+2025-05-16 13:05:20,501 - discord_bots.bot_manager - INFO - Bot DAI is ready and connected as D.AI#6483
+2025-05-16 13:05:20,502 - discord_bots.bot_manager - INFO - Bot is in following guilds: ['Sahabat Legenda', 'Cita Abadi Bersama Usaha Luhur']
+2025-05-16 13:05:20,502 - discord_bots.bot_manager - INFO - Command prefix is: !
+2025-05-16 13:12:00,538 - discord_bots.bot_manager - INFO - Creating bot DAI with all intents enabled
+2025-05-16 13:12:05,080 - discord_bots.bot_manager - INFO - Bot DAI is ready and connected as D.AI#6483
+2025-05-16 13:12:05,080 - discord_bots.bot_manager - INFO - Bot is in following guilds: ['Sahabat Legenda', 'Cita Abadi Bersama Usaha Luhur']
+2025-05-16 13:12:05,082 - discord_bots.bot_manager - INFO - Command prefix is: !
+2025-05-16 13:18:01,646 - discord_bots.bot_manager - INFO - Creating bot DAI with all intents enabled
+2025-05-16 13:18:06,088 - discord_bots.bot_manager - INFO - Bot DAI is ready and connected as D.AI#6483
+2025-05-16 13:18:06,088 - discord_bots.bot_manager - INFO - Bot is in following guilds: ['Sahabat Legenda', 'Cita Abadi Bersama Usaha Luhur']
+2025-05-16 13:18:06,089 - discord_bots.bot_manager - INFO - Command prefix is: !
+2025-05-16 13:20:53,920 - discord_bots.bot_manager - INFO - Creating bot DAI with all intents enabled
+2025-05-16 13:20:58,186 - discord_bots.bot_manager - INFO - Bot DAI is ready and connected as D.AI#6483
+2025-05-16 13:20:58,186 - discord_bots.bot_manager - INFO - Bot is in following guilds: ['Sahabat Legenda', 'Cita Abadi Bersama Usaha Luhur']
+2025-05-16 13:20:58,187 - discord_bots.bot_manager - INFO - Command prefix is: !
+2025-05-16 13:22:32,502 - discord_bots.bot_manager - INFO - Creating bot DAI with all intents enabled
+2025-05-16 13:22:36,802 - discord_bots.bot_manager - INFO - Bot DAI is ready and connected as D.AI#6483
+2025-05-16 13:22:36,802 - discord_bots.bot_manager - INFO - Bot is in following guilds: ['Sahabat Legenda', 'Cita Abadi Bersama Usaha Luhur']
+2025-05-16 13:22:36,803 - discord_bots.bot_manager - INFO - Command prefix is: !
+2025-05-16 13:44:28,247 - discord_bots.bot_manager - INFO - Creating bot DAI with all intents enabled
+2025-05-16 13:44:32,894 - discord_bots.bot_manager - INFO - Bot DAI is ready and connected as D.AI#6483
+2025-05-16 13:44:32,894 - discord_bots.bot_manager - INFO - Bot is in following guilds: ['Sahabat Legenda', 'Cita Abadi Bersama Usaha Luhur']
+2025-05-16 13:44:32,895 - discord_bots.bot_manager - INFO - Command prefix is: !
+2025-05-16 13:53:23,127 - discord_bots.bot_manager - INFO - Creating bot DAI with all intents enabled
+2025-05-16 13:53:27,506 - discord_bots.bot_manager - INFO - Bot DAI is ready and connected as D.AI#6483
+2025-05-16 13:53:27,507 - discord_bots.bot_manager - INFO - Bot is in following guilds: ['Sahabat Legenda', 'Cita Abadi Bersama Usaha Luhur']
+2025-05-16 13:53:27,508 - discord_bots.bot_manager - INFO - Command prefix is: !
+2025-05-16 13:53:59,276 - discord_bots.bot_manager - ERROR - Error in custom model command: Traceback (most recent call last):
+  File "C:\Users\adnan\Documents\GitHub\vasakertha\backend\discord_bots\bot_manager.py", line 517, in custom_model_command
+    self._log_conversation_jsonl(entry, bot.id)
+                                        ^^^^^^
+AttributeError: 'Bot' object has no attribute 'id'
+
+2025-05-16 13:56:53,840 - discord_bots.bot_manager - INFO - Creating bot DAI with all intents enabled
+2025-05-16 13:56:58,110 - discord_bots.bot_manager - INFO - Bot DAI is ready and connected as D.AI#6483
+2025-05-16 13:56:58,110 - discord_bots.bot_manager - INFO - Bot is in following guilds: ['Sahabat Legenda', 'Cita Abadi Bersama Usaha Luhur']
+2025-05-16 13:56:58,111 - discord_bots.bot_manager - INFO - Command prefix is: !
+2025-05-16 13:59:55,117 - discord_bots.bot_manager - INFO - Creating bot DAI with all intents enabled
+2025-05-16 13:59:59,436 - discord_bots.bot_manager - INFO - Bot DAI is ready and connected as D.AI#6483
+2025-05-16 13:59:59,437 - discord_bots.bot_manager - INFO - Bot is in following guilds: ['Sahabat Legenda', 'Cita Abadi Bersama Usaha Luhur']
+2025-05-16 13:59:59,439 - discord_bots.bot_manager - INFO - Command prefix is: !
+2025-05-16 14:03:53,373 - discord_bots.bot_manager - INFO - Creating bot DAI with all intents enabled
+2025-05-16 14:03:57,618 - discord_bots.bot_manager - INFO - Bot DAI is ready and connected as D.AI#6483
+2025-05-16 14:03:57,618 - discord_bots.bot_manager - INFO - Bot is in following guilds: ['Sahabat Legenda', 'Cita Abadi Bersama Usaha Luhur']
+2025-05-16 14:03:57,619 - discord_bots.bot_manager - INFO - Command prefix is: !

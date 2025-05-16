@@ -15,14 +15,15 @@ const ConversationHistory = () => {
   useEffect(() => {
     const fetchHistory = async () => {
       try {
-        const response = await api.get('/conversation-history');
-        console.log(response);
-        if (Array.isArray(response.data)) {
+        const response = await api.get('/api/conversation_logs');
+        if (Array.isArray(response)) {
+          setHistory(response);
+        } else if (Array.isArray(response.data)) {
           setHistory(response.data);
         } else {
           setError('Response data is not an array');
         }
-      } catch (err) {
+      } catch (err: any) {
         setError(err.message);
       } finally {
         setLoading(false);

@@ -63,7 +63,7 @@ app.include_router(providers.router)
 app.include_router(models_router.router)
 app.include_router(bots.router)
 app.include_router(bot_model_integrations.router)
-app.include_router(logs.router, prefix="/logs", tags=["logs"])  # Include the logs router
+app.include_router(logs.router, prefix="/api", tags=["logs"])  # Include the logs router
 
 # Serve static files for model images
 static_dir = os.path.join(os.path.dirname(__file__), '../static/model_images')

@@ -12,6 +12,7 @@ from models import models as db_models
 from discord_bots.bot_models import DiscordBot
 import json
 import collections
+import datetime
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -38,6 +39,9 @@ logger = logging.getLogger(__name__)
 logger.addHandler(log_handler)
 logger.setLevel(log_level)
 
+# Path for structured conversation logs
+CONVERSATION_LOGS_FILE = "conversation_logs.jsonl"
+
 class DaeBotManager:
     def __init__(self):
         self.bots: Dict[int, commands.Bot] = {}
@@ -48,6 +52,23 @@ class DaeBotManager:
 
     def get_memory_key(self, channel_id, user_id):
         return f"{channel_id}:{user_id}"
+
+    def _log_conversation_jsonl(self, entry, bot_id, user_name=None, channel_name=None, guild_name=None):
+        """Append a conversation entry as JSON to the conversation_logs.jsonl file, including names."""
+        log_entry = dict(entry)
+        log_entry["timestamp"] = datetime.datetime.utcnow().isoformat()
+        log_entry["bot_id"] = bot_id
+        if user_name:
+            log_entry["user_name"] = user_name
+        if channel_name:
+            log_entry["channel_name"] = channel_name
+        if guild_name:
+            log_entry["guild_name"] = guild_name
+        try:
+            with open(CONVERSATION_LOGS_FILE, "a", encoding="utf-8") as f:
+                f.write(json.dumps(log_entry, ensure_ascii=False) + "\n")
+        except Exception as e:
+            logger.error(f"Failed to write conversation log: {e}")
 
     def setup_bot(self, bot: commands.Bot, name: str) -> None:
         @bot.event
@@ -232,7 +253,7 @@ class DaeBotManager:
                     provider = session.query(db_models.AIProvider).filter(db_models.AIProvider.id == model.provider_id).first() if model else None
                     integration_config = integration.config if hasattr(integration, 'config') else {}
 
-                    async def custom_model_command(ctx, *, prompt: str = None, _model_id=model_id, _command=integration.command, _model=model, _provider=provider, _integration_config=integration_config):
+                    async def custom_model_command(ctx, *, prompt: str = None, _model_id=model_id, _command=integration.command, _model=model, _provider=provider, _integration_config=integration_config, _bot_db_id=bot_db.id):
                         if not prompt:
                             await ctx.send(f"Usage: {_command} <your prompt>")
                             return
@@ -246,8 +267,11 @@ class DaeBotManager:
                             except Exception:
                                 persona = None
                             user_id = ctx.author.id
+                            user_name = str(ctx.author)
                             channel_id = ctx.channel.id
-                            guild_id = ctx.guild.id  # Get guild ID
+                            channel_name = ctx.channel.name if hasattr(ctx.channel, 'name') else str(ctx.channel)
+                            guild_id = ctx.guild.id
+                            guild_name = ctx.guild.name if ctx.guild else None
                             # --- Get persona/model name for this command ---
                             persona_name = (getattr(_model, 'name', None) or getattr(_model, 'model_id', None) or 'assistant').lower()
                             # --- Build context: persona, then memory (filtered), then current prompt ---
@@ -273,14 +297,16 @@ class DaeBotManager:
                                 )
                                 reply = response['choices'][0]['message']['content']
                                 # Store conversation data
-                                self.conversation_history.append({
+                                entry = {
                                     "user_id": user_id,
                                     "channel_id": channel_id,
                                     "guild_id": guild_id,
                                     "user_message": prompt,
                                     "bot_response": reply,
                                     "model_name": persona_name
-                                })
+                                }
+                                self.conversation_history.append(entry)
+                                self._log_conversation_jsonl(entry, _bot_db_id, user_name=user_name, channel_name=channel_name, guild_name=guild_name)
                                 for chunk in split_message_chunks(reply):
                                     await ctx.send(chunk)
                                 # Store both user prompt and bot reply in memory as ("user", prompt), (persona_name, reply)
@@ -316,14 +342,16 @@ class DaeBotManager:
                                 if resp.status_code == 200:
                                     reply = resp.json().get('content', [{}])[0].get('text', 'No response')
                                     # Store conversation data
-                                    self.conversation_history.append({
+                                    entry = {
                                         "user_id": user_id,
                                         "channel_id": channel_id,
                                         "guild_id": guild_id,
                                         "user_message": prompt,
                                         "bot_response": reply,
                                         "model_name": persona_name
-                                    })
+                                    }
+                                    self.conversation_history.append(entry)
+                                    self._log_conversation_jsonl(entry, _bot_db_id, user_name=user_name, channel_name=channel_name, guild_name=guild_name)
                                     for chunk in split_message_chunks(reply):
                                         await ctx.send(chunk)
                                     self.user_message_memory[key].append(("user", prompt))
@@ -354,14 +382,16 @@ class DaeBotManager:
                                     candidates = resp.json().get('candidates', [])
                                     reply = candidates[0]['content']['parts'][0]['text'] if candidates and 'content' in candidates[0] and 'parts' in candidates[0]['content'] and candidates[0]['content']['parts'] else 'No response'
                                     # Store conversation data
-                                    self.conversation_history.append({
+                                    entry = {
                                         "user_id": user_id,
                                         "channel_id": channel_id,
                                         "guild_id": guild_id,
                                         "user_message": prompt,
                                         "bot_response": reply,
                                         "model_name": persona_name
-                                    })
+                                    }
+                                    self.conversation_history.append(entry)
+                                    self._log_conversation_jsonl(entry, _bot_db_id, user_name=user_name, channel_name=channel_name, guild_name=guild_name)
                                     for chunk in split_message_chunks(reply):
                                         await ctx.send(chunk)
                                     self.user_message_memory[key].append(("user", prompt))
@@ -396,14 +426,16 @@ class DaeBotManager:
                                 if resp.status_code == 200:
                                     reply = resp.json().get('choices', [{}])[0].get('message', {}).get('content', 'No response')
                                     # Store conversation data
-                                    self.conversation_history.append({
+                                    entry = {
                                         "user_id": user_id,
                                         "channel_id": channel_id,
                                         "guild_id": guild_id,
                                         "user_message": prompt,
                                         "bot_response": reply,
                                         "model_name": persona_name
-                                    })
+                                    }
+                                    self.conversation_history.append(entry)
+                                    self._log_conversation_jsonl(entry, _bot_db_id, user_name=user_name, channel_name=channel_name, guild_name=guild_name)
                                     for chunk in split_message_chunks(reply):
                                         await ctx.send(chunk)
                                     self.user_message_memory[key].append(("user", prompt))
@@ -438,14 +470,16 @@ class DaeBotManager:
                                 if resp.status_code == 200:
                                     reply = resp.json().get('choices', [{}])[0].get('message', {}).get('content', 'No response')
                                     # Store conversation data
-                                    self.conversation_history.append({
+                                    entry = {
                                         "user_id": user_id,
                                         "channel_id": channel_id,
                                         "guild_id": guild_id,
                                         "user_message": prompt,
                                         "bot_response": reply,
                                         "model_name": persona_name
-                                    })
+                                    }
+                                    self.conversation_history.append(entry)
+                                    self._log_conversation_jsonl(entry, _bot_db_id, user_name=user_name, channel_name=channel_name, guild_name=guild_name)
                                     for chunk in split_message_chunks(reply):
                                         await ctx.send(chunk)
                                     self.user_message_memory[key].append(("user", prompt))
@@ -480,14 +514,16 @@ class DaeBotManager:
                                 if resp.status_code == 200:
                                     reply = resp.json().get('choices', [{}])[0].get('message', {}).get('content', 'No response')
                                     # Store conversation data
-                                    self.conversation_history.append({
+                                    entry = {
                                         "user_id": user_id,
                                         "channel_id": channel_id,
                                         "guild_id": guild_id,
                                         "user_message": prompt,
                                         "bot_response": reply,
                                         "model_name": persona_name
-                                    })
+                                    }
+                                    self.conversation_history.append(entry)
+                                    self._log_conversation_jsonl(entry, _bot_db_id, user_name=user_name, channel_name=channel_name, guild_name=guild_name)
                                     for chunk in split_message_chunks(reply):
                                         await ctx.send(chunk)
                                     self.user_message_memory[key].append(("user", prompt))
